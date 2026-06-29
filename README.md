@@ -28,14 +28,14 @@
 
 # 📄 Documentation
 
-- 📗 [Quick Start Guide](Quick-start-guide.pdf)
-- 📘 [Behind the Project](Behind-the-project.pdf)
+- 📗 [Quick Start Guide](https://github.com/annamalkusz/NAZWA-REPOZYTORIUM/raw/main/Quick-start-guide.pdf)
+- 📘 [Behind the Project](https://github.com/annamalkusz/NAZWA-REPOZYTORIUM/raw/main/Behind-the-project.pdf)
 
 ---
 
 # © Copyright
 
-© 2026 Anna Małkusz. All rights reserved.
+© 2026 Anna Malkusz. All rights reserved.
 
 This repository is shared exclusively for portfolio and recruitment purposes.
 
