@@ -1,0 +1,2801 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Job Application Tracker – Portfolio Edition</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+/* ============================================================
+   TOKENS & RESET
+   ============================================================ */
+:root {
+  --sage:        #A8C5A0;
+  --sage-light:  #D4E8D0;
+  --sage-pale:   #EDF5EB;
+  --lavender:    #C4B5D9;
+  --lavender-light: #E0D8EF;
+  --lavender-pale:  #F3F0FA;
+  --rose:        #E8C4C4;
+  --rose-light:  #F5E0E0;
+  --rose-pale:   #FDF2F2;
+  --butter:      #F0E6A0;
+  --butter-light:#FAF3C8;
+  --butter-pale: #FDFAED;
+  --sky:         #B0D4E8;
+  --sky-light:   #D8EDF7;
+  --sky-pale:    #EEF7FC;
+  --peach:       #F5CFA8;
+  --peach-light: #FAE5CC;
+  --peach-pale:  #FEF6EE;
+  --mint:        #A8D8C8;
+  --mint-light:  #C8EDE3;
+  --mint-pale:   #EDF8F4;
+  --cream:       #FDFAF5;
+  --ink:         #2D2A35;
+  --ink-soft:    #4A4558;
+  --ink-muted:   #7A7590;
+  --border:      #EDE9F5;
+  --border-soft: #F5F3FA;
+  --white:       #FFFFFF;
+
+  /* Status colours */
+  --s-new:       #A8C5A0;
+  --s-wait:      #E8C4C4;
+  --s-contact:   #B0D4E8;
+  --s-interview: #C4B5D9;
+  --s-offer:     #F0E6A0;
+  --s-rejected:  #D4CFC8;
+
+  --radius:  14px;
+  --radius-sm: 8px;
+  --shadow:  0 2px 16px rgba(45,42,53,.07);
+  --shadow-md: 0 4px 28px rgba(45,42,53,.11);
+  --transition: .18s ease;
+
+  font-size: 16px;
+}
+
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  font-family: 'Segoe UI', system-ui, sans-serif;
+  background: var(--cream);
+  color: var(--ink);
+  min-height: 100vh;
+  line-height: 1.6;
+}
+
+a { color: inherit; text-decoration: none; }
+button { cursor: pointer; font-family: inherit; }
+input, textarea, select { font-family: inherit; }
+
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--lavender); border-radius: 3px; }
+
+/* ============================================================
+   LAYOUT
+   ============================================================ */
+.app { display: flex; flex-direction: column; min-height: 100vh; }
+
+header {
+  background: linear-gradient(135deg, #ddeef9 0%, #e8e4f5 50%, #d4ead0 100%);
+  border-bottom: 1.5px solid var(--sky-light);
+  padding: 0 32px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  box-shadow: 0 2px 12px rgba(176,212,232,.18);
+}
+
+.logo {
+  font-size: 1.15rem;
+  font-weight: 700;
+  letter-spacing: -.3px;
+  color: var(--ink);
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.logo-dot {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, var(--lavender), var(--sage));
+  display: inline-block;
+}
+
+.header-actions { display: flex; gap: 10px; align-items: center; }
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 18px;
+  border-radius: var(--radius-sm);
+  border: none;
+  font-size: .875rem;
+  font-weight: 600;
+  transition: all var(--transition);
+}
+.btn-ghost {
+  background: transparent;
+  color: var(--ink-soft);
+  border: 1.5px solid var(--border);
+}
+.btn-ghost:hover { background: var(--lavender-pale); border-color: var(--lavender); }
+.btn-primary {
+  background: var(--lavender);
+  color: var(--ink);
+  border: 1.5px solid transparent;
+}
+.btn-primary:hover { background: var(--lavender-light); box-shadow: var(--shadow); }
+.btn-danger {
+  background: var(--rose);
+  color: var(--ink);
+  border: 1.5px solid transparent;
+}
+.btn-danger:hover { background: var(--rose-light); }
+
+/* Interview mode button */
+.btn-interview {
+  background: linear-gradient(135deg, var(--lavender), var(--sky));
+  color: var(--ink);
+  border: none;
+  font-weight: 700;
+}
+.btn-interview:hover { opacity: .88; box-shadow: var(--shadow); }
+.btn-interview.active {
+  background: linear-gradient(135deg, var(--sage), var(--mint));
+  box-shadow: 0 0 0 3px var(--sage-light);
+}
+
+main { flex: 1; max-width: 1100px; margin: 0 auto; width: 100%; padding: 32px 24px 120px; }
+
+/* ============================================================
+   DASHBOARD
+   ============================================================ */
+.dashboard {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 16px;
+  margin-bottom: 32px;
+}
+.stat-card {
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  padding: 22px 24px;
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+  box-shadow: var(--shadow);
+  transition: transform var(--transition);
+}
+.stat-card:hover { transform: translateY(-2px); }
+.stat-card .stat-val { font-size: 2rem; font-weight: 800; line-height: 1.1; letter-spacing: -.5px; }
+.stat-card .stat-label { font-size: .8rem; color: var(--ink-muted); font-weight: 500; text-transform: uppercase; letter-spacing: .5px; }
+.stat-card.all    { border-top: 3px solid var(--lavender); }
+.stat-card.active { border-top: 3px solid var(--sage); }
+.stat-card.offer  { border-top: 3px solid var(--butter); }
+.stat-card.reject { border-top: 3px solid var(--rose); }
+
+/* ============================================================
+   SEARCH
+   ============================================================ */
+.search-wrap { position: relative; margin-bottom: 24px; }
+.search-icon {
+  position: absolute; left: 16px; top: 50%; transform: translateY(-50%);
+  color: var(--ink-muted); font-size: 1rem; pointer-events: none;
+}
+.search-shortcut {
+  position: absolute; right: 16px; top: 50%; transform: translateY(-50%);
+  background: var(--border-soft); border: 1px solid var(--border); border-radius: 5px;
+  padding: 2px 7px; font-size: .72rem; color: var(--ink-muted); pointer-events: none;
+}
+#searchInput {
+  width: 100%;
+  padding: 14px 90px 14px 44px;
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--white);
+  font-size: .95rem; color: var(--ink);
+  box-shadow: var(--shadow);
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+#searchInput:focus { outline: none; border-color: var(--lavender); box-shadow: 0 0 0 3px var(--lavender-pale); }
+
+/* ============================================================
+   FILTERS ROW
+   ============================================================ */
+.filters-row { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 24px; align-items: center; }
+.filter-chip {
+  padding: 6px 14px; border-radius: 99px; font-size: .8rem; font-weight: 600;
+  border: 1.5px solid var(--border); background: var(--white); color: var(--ink-soft);
+  cursor: pointer; transition: all var(--transition);
+}
+.filter-chip:hover { border-color: var(--lavender); color: var(--ink); }
+.filter-chip.active { background: var(--lavender); border-color: var(--lavender); color: var(--ink); }
+.filter-chip[data-status="Nowa"].active                    { background: var(--s-new); border-color: var(--s-new); }
+.filter-chip[data-status="Brak odpowiedzi > 2 tyg."].active{ background: var(--s-wait); border-color: var(--s-wait); }
+.filter-chip[data-status="Kontakt"].active                 { background: var(--s-contact); border-color: var(--s-contact); }
+.filter-chip[data-status="Rozmowa"].active                 { background: var(--s-interview); border-color: var(--s-interview); }
+.filter-chip[data-status="Oferta"].active                  { background: var(--s-offer); border-color: var(--s-offer); }
+.filter-chip[data-status="Odrzucona"].active               { background: var(--s-rejected); border-color: var(--s-rejected); }
+.filters-right { margin-left: auto; display: flex; gap: 8px; }
+
+/* ============================================================
+   APPLICATION LIST
+   ============================================================ */
+.app-list { display: flex; flex-direction: column; gap: 12px; }
+
+.app-card {
+  background: var(--white);
+  border: 1.5px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  transition: box-shadow var(--transition), transform var(--transition);
+}
+.app-card:hover { box-shadow: var(--shadow-md); transform: translateY(-1px); }
+
+.app-card-header {
+  display: flex; align-items: flex-start; gap: 16px;
+  padding: 18px 22px; cursor: pointer; user-select: none;
+}
+.app-card-accent { width: 4px; border-radius: 99px; height: 48px; flex-shrink: 0; margin-top: 2px; }
+.app-card-main { flex: 1; min-width: 0; }
+.app-card-company { font-weight: 700; font-size: 1rem; color: var(--ink); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.app-card-role    { font-size: .875rem; color: var(--ink-soft); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+/* Card sub-row: badges + date */
+.app-card-badges {
+  display: flex; flex-wrap: wrap; gap: 5px; margin-top: 7px;
+}
+
+/* Tag mini-badges on card */
+.badge-tag {
+  background: var(--lavender-pale);
+  border: 1px solid var(--lavender-light);
+  color: var(--ink-soft);
+  border-radius: 99px;
+  padding: 2px 8px;
+  font-size: .7rem;
+  font-weight: 600;
+}
+.badge-date {
+  background: var(--border-soft);
+  border: 1px solid var(--border);
+  color: var(--ink-muted);
+  border-radius: 99px;
+  padding: 2px 8px;
+  font-size: .7rem;
+  font-weight: 500;
+}
+
+.app-card-meta {
+  display: flex; gap: 8px; align-items: center; flex-shrink: 0;
+}
+.badge {
+  display: inline-flex; align-items: center; gap: 4px;
+  padding: 4px 10px; border-radius: 99px;
+  font-size: .75rem; font-weight: 600; white-space: nowrap;
+}
+.badge-salary   { background: var(--butter-pale); color: var(--ink-soft); border: 1px solid var(--butter-light); }
+.badge-mode     { background: var(--sky-pale);    color: var(--ink-soft); border: 1px solid var(--sky-light); }
+.badge-contract { background: var(--lavender-pale); color: var(--ink-soft); border: 1px solid var(--lavender-light); }
+.badge-net      { background: var(--mint-pale);     color: var(--ink-soft); border: 1px solid var(--mint-light); }
+.badge-status   { padding: 5px 12px; border-radius: 99px; font-size: .78rem; font-weight: 700; }
+
+.app-card-toggle {
+  width: 28px; height: 28px; border: none; background: none; color: var(--ink-muted);
+  display: flex; align-items: center; justify-content: center; border-radius: 50%;
+  transition: background var(--transition), transform var(--transition); flex-shrink: 0;
+}
+.app-card.expanded .app-card-toggle { transform: rotate(180deg); }
+.app-card-toggle:hover { background: var(--lavender-pale); }
+
+/* ============================================================
+   CARD DETAIL
+   ============================================================ */
+.app-card-detail { display: none; border-top: 1.5px solid var(--border-soft); }
+.app-card.expanded .app-card-detail { display: block; }
+
+/* Tabs */
+.tabs {
+  display: flex; gap: 2px; padding: 12px 22px 0;
+  border-bottom: 1.5px solid var(--border-soft);
+}
+.tab-btn {
+  padding: 8px 18px; border: none; background: none;
+  font-size: .875rem; font-weight: 600; color: var(--ink-muted);
+  border-radius: var(--radius-sm) var(--radius-sm) 0 0;
+  border-bottom: 2.5px solid transparent;
+  transition: all var(--transition);
+}
+.tab-btn.active { color: var(--ink); border-bottom-color: var(--lavender); background: var(--lavender-pale); }
+.tab-btn:hover  { color: var(--ink); background: var(--border-soft); }
+
+.tab-panel { display: none; padding: 10px 14px; }
+.tab-panel.active { display: block; }
+
+/* ============================================================
+   OVERVIEW TAB — PASTEL CARDS
+   ============================================================ */
+.overview-cards-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 7px;
+  margin-bottom: 12px;
+  align-items: stretch;
+}
+.overview-card {
+  border-radius: 10px;
+  padding: 7px 12px;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  border: 1.5px solid transparent;
+  min-width: 120px;
+  flex: 1 1 auto;
+}
+.overview-card .oc-icon { display: none; }
+.overview-card .oc-label {
+  font-size: .65rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .5px; opacity: .65;
+}
+.overview-card .oc-value {
+  font-size: .88rem; font-weight: 700; color: var(--ink); line-height: 1.3;
+}
+.overview-card .oc-value a { text-decoration: underline; color: #5b7fa6; font-weight: 600; font-size: .82rem; }
+
+/* Card colour themes */
+.oc-sky    { background: var(--sky-pale);    border-color: var(--sky-light); }
+.oc-lavender { background: var(--lavender-pale); border-color: var(--lavender-light); }
+.oc-sage   { background: var(--sage-pale);   border-color: var(--sage-light); }
+.oc-butter { background: var(--butter-pale); border-color: var(--butter-light); }
+.oc-peach  { background: var(--peach-pale);  border-color: var(--peach-light); }
+.oc-rose   { background: var(--rose-pale);   border-color: var(--rose-light); }
+.oc-mint   { background: var(--mint-pale);   border-color: var(--mint-light); }
+.oc-cream  { background: var(--cream);       border-color: var(--border); }
+
+/* Full-width description cards */
+.overview-cards-full {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+  margin-bottom: 10px;
+}
+.overview-desc-card {
+  border-radius: 10px;
+  padding: 9px 13px;
+  border: 1.5px solid transparent;
+}
+.overview-desc-card .oc-label {
+  font-size: .65rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .5px; opacity: .65; margin-bottom: 5px; display: flex; align-items: center; gap: 5px;
+}
+.overview-desc-card .oc-text {
+  font-size: .85rem; color: var(--ink-soft); line-height: 1.55;
+  white-space: pre-wrap; word-break: break-word;
+  max-height: 120px; overflow-y: auto;
+}
+
+/* Tags area */
+.overview-tags-card { display: none; }
+.overview-tags-card .oc-label { display: none; }
+.tags-wrap { display: flex; flex-wrap: wrap; gap: 6px; }
+.tag {
+  background: var(--white);
+  border: 1px solid var(--lavender-light);
+  color: var(--ink-soft); border-radius: 99px;
+  padding: 3px 10px; font-size: .78rem; font-weight: 500;
+}
+
+.salary-wrap { display: flex; flex-direction: column; gap: 3px; }
+.salary-badge { font-size: .68rem; font-weight: 700; padding: 2px 8px; border-radius: 99px; align-self: flex-start; }
+.salary-badge.pewne    { background: var(--sage-light);   color: var(--ink); }
+.salary-badge.szacowane{ background: var(--butter-light); color: var(--ink); }
+
+/* ============================================================
+   PREPARATION TAB — PASTEL MODULE CARDS
+   ============================================================ */
+.prep-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.prep-grid .module { margin-bottom: 0; }
+
+.module {
+  border-radius: var(--radius);
+  overflow: hidden;
+  border: 1.5px solid transparent;
+}
+/* Each module gets its own palette */
+.module[data-key="strengths"] { background: var(--sage-pale);     border-color: var(--sage-light); }
+.module[data-key="gaps"]      { background: var(--rose-pale);     border-color: var(--rose-light); }
+.module[data-key="glossary"]  { background: var(--sky-pale);      border-color: var(--sky-light); }
+.module[data-key="whyme"]     { background: var(--butter-pale);   border-color: var(--butter-light); }
+.module[data-key="phrases"]   { background: var(--lavender-pale); border-color: var(--lavender-light); }
+.module[data-key="questions"] { background: var(--peach-pale);    border-color: var(--peach-light); }
+
+.module-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 10px 14px; cursor: pointer; user-select: none;
+  background: rgba(255,255,255,.5);
+  transition: background var(--transition);
+}
+.module-header:hover { background: rgba(255,255,255,.75); }
+.module-title { font-weight: 700; font-size: .9rem; color: var(--ink); display: flex; align-items: center; gap: 8px; }
+.module-icon  { font-size: 1.1rem; }
+.module-toggle { font-size: .85rem; color: var(--ink-muted); transition: color var(--transition); user-select: none; }
+.module:not(.open) .module-toggle::before { content: '▶'; }
+.module.open      .module-toggle::before { content: '▼'; }
+.module-body  { display: none; padding: 4px 14px 12px; }
+.module.open .module-body  { display: block; }
+
+/* Markdown rendered output */
+.module-content { font-size: .9rem; color: var(--ink-soft); line-height: 1.7; word-break: break-word; }
+.module-content strong { font-weight: 700; color: var(--ink); }
+.module-content ul { padding-left: 18px; margin: 4px 0; }
+.module-content li { margin-bottom: 5px; }
+.module-content p  { margin-bottom: 6px; }
+
+/* ============================================================
+   INTERVIEW MODE — overlay on tab-panel
+   ============================================================ */
+.interview-mode-bar {
+  background: linear-gradient(135deg, var(--lavender-pale), var(--sage-pale));
+  border: 1.5px solid var(--lavender-light);
+  border-radius: var(--radius);
+  padding: 14px 18px;
+  margin-bottom: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.interview-mode-bar .im-label {
+  display: flex; align-items: center; gap: 8px;
+  font-weight: 700; font-size: .9rem; color: var(--ink);
+}
+.im-dot {
+  width: 10px; height: 10px; border-radius: 50%;
+  background: var(--sage); display: inline-block;
+  animation: imPulse 1.4s ease-in-out infinite;
+}
+@keyframes imPulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+
+/* interview-active rules moved to CSS addition block below */
+
+/* ============================================================
+   CONTACT TAB
+   ============================================================ */
+.contact-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+}
+@media (max-width: 600px) { .contact-grid { grid-template-columns: 1fr; } }
+
+.contact-block {
+  border-radius: var(--radius);
+  padding: 13px 16px;
+  border: 1.5px solid transparent;
+}
+.contact-block-title {
+  font-size: .72rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .6px; margin-bottom: 12px; display: flex; align-items: center; gap: 6px; opacity: .75;
+}
+.cb-status  { background: var(--lavender-pale); border-color: var(--lavender-light); }
+.cb-phone   { background: var(--mint-pale);     border-color: var(--mint-light); }
+.cb-notes   { background: var(--butter-pale);   border-color: var(--butter-light); }
+.cb-history { background: var(--sky-pale);      border-color: var(--sky-light); }
+
+/* Contact checkbox */
+.contact-checkbox-label {
+  display: flex; align-items: center; gap: 10px;
+  font-weight: 600; font-size: .95rem; cursor: pointer;
+}
+.contact-checkbox-label input[type=checkbox] {
+  width: 20px; height: 20px; accent-color: var(--lavender); cursor: pointer;
+}
+
+/* Notes textarea */
+.contact-notes-area {
+  width: 100%;
+  border: 1.5px solid var(--butter);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: .875rem;
+  background: var(--white);
+  resize: vertical; min-height: 90px;
+  color: var(--ink);
+  transition: border-color var(--transition);
+}
+.contact-notes-area:focus { outline: none; border-color: var(--lavender); }
+
+/* Status select inside contact block */
+.contact-status-select {
+  width: 100%;
+  padding: 10px 12px;
+  border: 1.5px solid var(--lavender-light);
+  border-radius: var(--radius-sm);
+  background: var(--white);
+  font-size: .9rem; font-weight: 600; color: var(--ink);
+  cursor: pointer;
+}
+.contact-status-select:focus { outline: none; border-color: var(--lavender); }
+
+/* History */
+.history-list { display: flex; flex-direction: column; gap: 8px; }
+.history-entry {
+  background: var(--white);
+  border: 1.5px solid var(--sky-light);
+  border-radius: var(--radius-sm);
+  padding: 12px 14px;
+  display: flex; flex-direction: column; gap: 4px;
+}
+.history-entry-top { display: flex; align-items: center; gap: 10px; }
+.history-date { font-size: .8rem; font-weight: 700; color: var(--ink-soft); }
+.history-type {
+  background: var(--sky-light); border-radius: 99px;
+  padding: 2px 8px; font-size: .72rem; font-weight: 700; color: var(--ink-soft);
+}
+.history-note { font-size: .875rem; color: var(--ink); }
+.history-entry-actions { display: flex; justify-content: flex-end; gap: 6px; margin-top: 4px; }
+
+.add-history-form {
+  background: var(--white);
+  border: 1.5px solid var(--sky-light);
+  border-radius: var(--radius-sm);
+  padding: 14px;
+  display: none; flex-direction: column; gap: 10px;
+  margin-top: 10px;
+}
+.add-history-form.open { display: flex; }
+.form-row { display: flex; gap: 10px; }
+.form-row > * { flex: 1; }
+.form-field { display: flex; flex-direction: column; gap: 4px; }
+.form-field label { font-size: .78rem; font-weight: 700; color: var(--ink-muted); text-transform: uppercase; letter-spacing: .4px; }
+.form-field input,
+.form-field select,
+.form-field textarea {
+  padding: 8px 10px; border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); background: var(--cream);
+  font-size: .875rem; color: var(--ink); transition: border-color var(--transition);
+}
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus { outline: none; border-color: var(--lavender); background: var(--white); }
+
+/* ============================================================
+   CARD ACTIONS
+   ============================================================ */
+.detail-actions {
+  display: flex; justify-content: flex-end; gap: 8px;
+  padding: 12px 22px;
+  border-top: 1.5px solid var(--border-soft);
+  background: var(--border-soft);
+}
+
+/* ============================================================
+   FAB
+   ============================================================ */
+.fab {
+  position: fixed; bottom: 32px; right: 32px;
+  width: 60px; height: 60px; border-radius: 50%;
+  background: linear-gradient(135deg, var(--lavender), var(--sage));
+  color: var(--ink); font-size: 1.6rem; border: none;
+  box-shadow: 0 6px 24px rgba(196,181,217,.4);
+  display: flex; align-items: center; justify-content: center;
+  z-index: 200; transition: transform .2s, box-shadow .2s; cursor: pointer;
+}
+.fab:hover { transform: scale(1.09) rotate(15deg); box-shadow: 0 10px 32px rgba(196,181,217,.5); }
+
+/* ============================================================
+   MODAL
+   ============================================================ */
+.modal-overlay {
+  position: fixed; inset: 0;
+  background: rgba(45,42,53,.35); backdrop-filter: blur(4px);
+  z-index: 300; display: flex; align-items: center; justify-content: center;
+  padding: 24px; opacity: 0; pointer-events: none; transition: opacity .2s;
+}
+.modal-overlay.open { opacity: 1; pointer-events: all; }
+.modal {
+  background: var(--white); border-radius: var(--radius);
+  box-shadow: 0 20px 60px rgba(45,42,53,.18);
+  width: 100%; max-width: 700px; max-height: 90vh; overflow-y: auto;
+  transform: translateY(16px) scale(.98); transition: transform .22s;
+}
+.modal-overlay.open .modal { transform: none; }
+.modal-header {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 22px 28px 16px; border-bottom: 1.5px solid var(--border);
+  position: sticky; top: 0; background: var(--white); z-index: 1;
+}
+.modal-title { font-size: 1.15rem; font-weight: 800; color: var(--ink); }
+.modal-close {
+  width: 32px; height: 32px; border: none; background: var(--border-soft);
+  border-radius: 50%; font-size: 1.1rem; color: var(--ink-muted);
+  display: flex; align-items: center; justify-content: center;
+  transition: background var(--transition); cursor: pointer;
+}
+.modal-close:hover { background: var(--rose-light); color: var(--ink); }
+.modal-body { padding: 24px 28px; }
+.modal-footer {
+  display: flex; justify-content: flex-end; gap: 10px;
+  padding: 16px 28px 22px; border-top: 1.5px solid var(--border);
+}
+
+/* Mode toggle */
+.mode-toggle {
+  display: flex; background: var(--border-soft); border-radius: var(--radius-sm);
+  padding: 4px; gap: 4px; margin-bottom: 24px;
+}
+.mode-btn {
+  flex: 1; padding: 9px; border: none; background: none;
+  border-radius: 6px; font-size: .85rem; font-weight: 600;
+  color: var(--ink-muted); transition: all var(--transition);
+}
+.mode-btn.active { background: var(--white); color: var(--ink); box-shadow: var(--shadow); }
+
+/* Form */
+.form-section-title {
+  font-size: .72rem; font-weight: 800; text-transform: uppercase;
+  letter-spacing: .7px; color: var(--ink-muted); margin: 20px 0 10px;
+}
+.form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; }
+.form-grid.one-col { grid-template-columns: 1fr; }
+.field { display: flex; flex-direction: column; gap: 5px; }
+.field label { font-size: .78rem; font-weight: 700; color: var(--ink-muted); text-transform: uppercase; letter-spacing: .4px; }
+.field input,
+.field select,
+.field textarea {
+  padding: 10px 13px; border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); background: var(--cream);
+  font-size: .9rem; color: var(--ink);
+  transition: border-color var(--transition), box-shadow var(--transition);
+}
+.field input:focus,
+.field select:focus,
+.field textarea:focus {
+  outline: none; border-color: var(--lavender);
+  box-shadow: 0 0 0 3px var(--lavender-pale); background: var(--white);
+}
+.field textarea { resize: vertical; min-height: 90px; }
+
+/* Import mode */
+.import-area {
+  width: 100%; min-height: 280px;
+  border: 1.5px dashed var(--lavender); border-radius: var(--radius);
+  padding: 16px; background: var(--lavender-pale);
+  font-size: .875rem; color: var(--ink); resize: vertical;
+  transition: border-color var(--transition);
+}
+.import-area:focus { outline: none; border-color: var(--lavender); border-style: solid; }
+.import-hint { font-size: .8rem; color: var(--ink-muted); margin-top: 8px; line-height: 1.5; }
+
+/* ============================================================
+   EMPTY STATE
+   ============================================================ */
+.empty-state { text-align: center; padding: 80px 24px; color: var(--ink-muted); }
+.empty-state .empty-icon { font-size: 3rem; margin-bottom: 12px; opacity: .5; }
+.empty-state h3 { font-size: 1.1rem; font-weight: 700; color: var(--ink-soft); margin-bottom: 6px; }
+.empty-state p  { font-size: .9rem; }
+
+/* ============================================================
+   CONFIRM DIALOG
+   ============================================================ */
+.confirm-overlay {
+  position: fixed; inset: 0; background: rgba(45,42,53,.4);
+  z-index: 500; display: flex; align-items: center; justify-content: center;
+  opacity: 0; pointer-events: none; transition: opacity .15s;
+}
+.confirm-overlay.open { opacity: 1; pointer-events: all; }
+.confirm-box {
+  background: var(--white); border-radius: var(--radius); padding: 28px;
+  max-width: 380px; width: 90%; box-shadow: var(--shadow-md); text-align: center;
+  transform: scale(.95); transition: transform .15s;
+}
+.confirm-overlay.open .confirm-box { transform: none; }
+.confirm-box h3 { font-size: 1.1rem; font-weight: 800; margin-bottom: 8px; }
+.confirm-box p  { font-size: .9rem; color: var(--ink-soft); margin-bottom: 22px; }
+.confirm-box .confirm-btns { display: flex; gap: 10px; justify-content: center; }
+
+/* ============================================================
+   TOAST
+   ============================================================ */
+.toast-container {
+  position: fixed; bottom: 100px; right: 28px;
+  z-index: 600; display: flex; flex-direction: column; gap: 8px;
+}
+.toast {
+  background: var(--ink); color: var(--white);
+  border-radius: var(--radius-sm); padding: 12px 18px;
+  font-size: .875rem; font-weight: 600; box-shadow: var(--shadow-md);
+  animation: toastIn .25s ease, toastOut .25s ease 2.5s forwards;
+  display: flex; align-items: center; gap: 8px;
+}
+.toast.success { background: var(--sage); color: var(--ink); }
+.toast.error   { background: var(--rose); color: var(--ink); }
+@keyframes toastIn  { from { opacity:0; transform: translateX(20px); } to { opacity:1; transform:none; } }
+@keyframes toastOut { to   { opacity:0; transform: translateX(20px); } }
+
+/* ============================================================
+   SORT SELECT
+   ============================================================ */
+.sort-select {
+  padding: 5px 10px; border: 1.5px solid var(--border);
+  border-radius: var(--radius-sm); background: var(--white);
+  font-size: .8rem; color: var(--ink); cursor: pointer;
+}
+.sort-select:focus { outline: none; border-color: var(--lavender); }
+
+/* ============================================================
+   RESPONSIVE
+   ============================================================ */
+@media (max-width: 900px) {
+  .overview-cards-grid { grid-template-columns: 1fr 1fr; }
+  .prep-grid { grid-template-columns: 1fr; }
+}
+@media (max-width: 768px) {
+  header { padding: 0 16px; }
+  main   { padding: 20px 12px 120px; }
+  .dashboard { grid-template-columns: repeat(2, 1fr); }
+  .app-card-meta { display: none; }
+  .overview-cards-grid { grid-template-columns: 1fr; }
+  .form-grid { grid-template-columns: 1fr; }
+  .modal { max-height: 95vh; }
+}
+
+/* ============================================================
+   LANG SWITCHER
+   ============================================================ */
+.lang-switcher {
+  display: inline-flex;
+  background: rgba(255,255,255,.6);
+  border: 1.5px solid var(--lavender-light);
+  border-radius: 99px;
+  padding: 2px;
+  gap: 2px;
+  backdrop-filter: blur(4px);
+}
+.lang-btn {
+  padding: 3px 12px;
+  border-radius: 99px;
+  border: none;
+  background: none;
+  font-size: .78rem;
+  font-weight: 700;
+  color: var(--ink-muted);
+  cursor: pointer;
+  transition: all var(--transition);
+}
+.lang-btn.active {
+  background: var(--lavender);
+  color: var(--ink);
+  box-shadow: 0 1px 6px rgba(196,181,217,.35);
+}
+
+/* ============================================================
+   INTERVIEW STICKY HEADER
+   ============================================================ */
+.interview-sticky {
+  position: sticky;
+  top: 60px;  /* below main header */
+  z-index: 50;
+  background: linear-gradient(135deg, var(--lavender-pale), var(--sage-pale));
+  border: 1.5px solid var(--lavender-light);
+  border-radius: var(--radius);
+  padding: 10px 16px;
+  margin-bottom: 12px;
+  display: none;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 10px;
+  box-shadow: 0 4px 16px rgba(45,42,53,.08);
+}
+.interview-sticky.visible { display: flex; }
+.interview-sticky .is-company {
+  font-weight: 800; font-size: .95rem; color: var(--ink); margin-right: 4px;
+}
+.interview-sticky .is-role { font-size: .85rem; color: var(--ink-soft); }
+.interview-sticky .is-salary {
+  background: var(--sage-pale); border: 1px solid var(--sage-light);
+  border-radius: 99px; padding: 2px 9px; font-size: .75rem; font-weight: 600; color: var(--ink);
+}
+.interview-sticky .is-link a {
+  color: #5b7fa6; text-decoration: underline; font-size: .8rem; font-weight: 600;
+}
+.interview-sticky .is-lang { margin-left: auto; }
+
+/* Interview mode — show all 5 key modules */
+.interview-active .module-hide  { display: none !important; }
+.interview-active .module-show  { display: block !important; }
+.interview-active .module-interview-show { display: block !important; }
+
+/* ============================================================
+   RECRUITMENT ENTRY SCREEN
+   ============================================================ */
+.welcome-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #ddeef9 0%, #e8e4f5 45%, #f3f0fa 75%, #d4ead0 100%);
+  padding: 24px;
+}
+.welcome-overlay.hidden { display: none; }
+
+.welcome-card {
+  max-width: 560px;
+  width: 100%;
+  background: var(--white);
+  border-radius: 22px;
+  padding: 48px 44px 40px;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(45,42,53,.16), 0 4px 16px rgba(45,42,53,.08);
+  border: 1.5px solid var(--border);
+}
+
+.welcome-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--lavender-pale);
+  color: var(--ink-soft);
+  border: 1.5px solid var(--lavender-light);
+  border-radius: 99px;
+  padding: 6px 16px;
+  font-size: .78rem;
+  font-weight: 700;
+  letter-spacing: .4px;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+
+.welcome-title {
+  font-size: 1.9rem;
+  font-weight: 800;
+  letter-spacing: -.5px;
+  color: var(--ink);
+  margin-bottom: 4px;
+  line-height: 1.25;
+}
+
+.welcome-subtitle {
+  font-size: 1.05rem;
+  font-weight: 600;
+  color: var(--ink-muted);
+  margin-bottom: 22px;
+}
+
+.welcome-desc {
+  font-size: .92rem;
+  line-height: 1.65;
+  color: var(--ink-soft);
+  margin-bottom: 30px;
+  text-align: left;
+  background: var(--cream);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  padding: 18px 20px;
+}
+
+.welcome-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 16px 28px;
+  background: linear-gradient(135deg, var(--lavender), var(--sky));
+  color: var(--ink);
+  font-size: 1.02rem;
+  font-weight: 700;
+  border: none;
+  border-radius: var(--radius-sm);
+  box-shadow: 0 6px 20px rgba(176,212,232,.45);
+  transition: var(--transition);
+}
+.welcome-cta:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 8px 26px rgba(176,212,232,.55);
+}
+
+.welcome-footnote {
+  margin-top: 16px;
+  font-size: .78rem;
+  color: var(--ink-muted);
+}
+
+@media (max-width: 480px) {
+  .welcome-card { padding: 36px 26px 30px; }
+  .welcome-title { font-size: 1.5rem; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================================================
+     RECRUITMENT ENTRY SCREEN
+     ============================================================ -->
+<div class="welcome-overlay" id="welcomeOverlay">
+  <div class="welcome-card">
+    <div class="welcome-badge">Recruitment Demo</div>
+    <h1 class="welcome-title">AI Job Application Tracker</h1>
+    <p class="welcome-subtitle">Portfolio Edition</p>
+    <p class="welcome-desc">
+      This portfolio version has been prepared exclusively for recruitment purposes.
+      All companies, job offers, salary ranges, notes and interview preparation materials
+      shown in this demo are fictional and have been created only to demonstrate the
+      application's functionality.
+    </p>
+    <button class="welcome-cta" id="welcomeCta">Explore Demo Workspace →</button>
+    <p class="welcome-footnote">One click — no sign-up, no upload. Demo data loads automatically.</p>
+  </div>
+</div>
+
+<div class="app">
+  <!-- HEADER -->
+  <header>
+    <div class="logo">
+      <span class="logo-dot"></span>
+      AI Job Application Tracker — Portfolio Edition
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-ghost" id="exportBtn">📄 Export PDF</button>
+      <button class="btn btn-ghost" id="exportJsonBtn">⬇ Backup JSON</button>
+      <button class="btn btn-ghost" id="importFileBtn">⬆ Import</button>
+      <input type="file" id="importFileInput" accept=".json" style="display:none">
+    </div>
+  </header>
+
+  <main>
+    <!-- DASHBOARD -->
+    <div class="dashboard">
+      <div class="stat-card all">
+        <div class="stat-val" id="stat-all">0</div>
+        <div class="stat-label">All</div>
+      </div>
+      <div class="stat-card active">
+        <div class="stat-val" id="stat-active">0</div>
+        <div class="stat-label">Active</div>
+      </div>
+      <div class="stat-card offer">
+        <div class="stat-val" id="stat-offer">0</div>
+        <div class="stat-label">Offers</div>
+      </div>
+      <div class="stat-card reject">
+        <div class="stat-val" id="stat-rejected">0</div>
+        <div class="stat-label">Rejected</div>
+      </div>
+    </div>
+
+    <!-- SEARCH -->
+    <div class="search-wrap">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Search by company, role, tags, notes…">
+      <span class="search-shortcut">Ctrl+K</span>
+    </div>
+
+    <!-- FILTERS -->
+    <div class="filters-row">
+      <button class="filter-chip active" data-status="all">All</button>
+      <button class="filter-chip" data-status="Nowa">New</button>
+      <button class="filter-chip" data-status="Brak odpowiedzi > 2 tyg.">No Response</button>
+      <button class="filter-chip" data-status="Kontakt">Contacted</button>
+      <button class="filter-chip" data-status="Rozmowa">Interview</button>
+      <button class="filter-chip" data-status="Oferta">Offer</button>
+      <button class="filter-chip" data-status="Odrzucona">Rejected</button>
+      <div class="filters-right">
+        <select class="sort-select" id="sortSelect">
+          <option value="date-desc">Newest</option>
+          <option value="date-asc">Oldest</option>
+          <option value="company">Company A–Z</option>
+          <option value="status">Status</option>
+        </select>
+      </div>
+    </div>
+
+    <!-- APP LIST -->
+    <div class="app-list" id="appList"></div>
+    <div class="empty-state" id="emptyState" style="display:none">
+      <div class="empty-icon">📋</div>
+      <h3>No applications yet</h3>
+      <p>Click + to add your first job application.</p>
+    </div>
+  </main>
+</div>
+
+<!-- FAB -->
+<button class="fab" id="fabBtn" title="Add application">+</button>
+
+<!-- TOAST -->
+<div class="toast-container" id="toastContainer"></div>
+
+<!-- ============================================================
+     ADD / EDIT MODAL
+     ============================================================ -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <div class="modal-header">
+      <span class="modal-title" id="modalTitle">New Application</span>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <!-- MODE TOGGLE -->
+      <div class="mode-toggle" id="modeToggle">
+        <button class="mode-btn active" data-mode="manual">✏️ Manual</button>
+        <button class="mode-btn" data-mode="import">📋 Quick Import</button>
+      </div>
+
+      <!-- MANUAL MODE -->
+      <div id="manualMode">
+        <div class="form-section-title">Basic Information</div>
+        <div class="form-grid">
+          <div class="field">
+            <label>Company *</label>
+            <input type="text" id="f-company" placeholder="e.g. NovaWorks">
+          </div>
+          <div class="field">
+            <label>Job Title *</label>
+            <input type="text" id="f-role" placeholder="e.g. Product Operations Coordinator">
+          </div>
+          <div class="field">
+            <label>Job Link</label>
+            <input type="url" id="f-link" placeholder="https://…">
+          </div>
+          <div class="field">
+            <label>Application Status</label>
+            <select id="f-status">
+              <option value="Nowa">New</option>
+              <option value="Brak odpowiedzi > 2 tyg.">No response &gt; 2 weeks</option>
+              <option value="Kontakt">Contacted</option>
+              <option value="Rozmowa">Interview</option>
+              <option value="Oferta">Offer</option>
+              <option value="Odrzucona">Rejected</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Gross Salary</label>
+            <input type="text" id="f-salaryGross" placeholder="e.g. $90,000 gross">
+          </div>
+          <div class="field">
+            <label>Estimated Net Salary</label>
+            <input type="text" id="f-salaryNet" placeholder="e.g. $68,000 net">
+          </div>
+          <div class="field">
+            <label>Salary Status</label>
+            <select id="f-salaryStatus">
+              <option value="pewne">Confirmed</option>
+              <option value="szacowane">Estimated</option>
+            </select>
+          </div>
+          <div class="field">
+            <label>Application Date (optional)</label>
+            <input type="text" id="f-dateApplied" placeholder="e.g. 06/15/2025">
+          </div>
+          <div class="field">
+            <label>Work Mode</label>
+            <input type="text" id="f-mode" placeholder="e.g. Remote, Hybrid 2+3">
+          </div>
+          <div class="field">
+            <label>Contract Type</label>
+            <input type="text" id="f-contract" placeholder="e.g. Full-time, Contract, Flexible">
+          </div>
+        </div>
+
+        <div class="form-section-title">Descriptions</div>
+        <div class="form-grid one-col">
+          <div class="field">
+            <label>Company Description</label>
+            <textarea id="f-companyDesc" rows="3" placeholder="What the company does…"></textarea>
+          </div>
+          <div class="field">
+            <label>Role Description</label>
+            <textarea id="f-roleDesc" rows="4" placeholder="Requirements, responsibilities…"></textarea>
+          </div>
+        </div>
+
+        <div class="form-section-title">Tags & Keywords</div>
+        <div class="form-grid one-col">
+          <div class="field">
+            <label>Tags (comma-separated)</label>
+            <input type="text" id="f-tags" placeholder="e.g. AI, Operations, Remote, Data">
+          </div>
+        </div>
+
+        <div class="form-section-title">Interview Preparation</div>
+        <div class="form-grid one-col">
+          <div class="field">
+            <label>Strengths</label>
+            <textarea id="f-strengths" rows="3" placeholder="• …&#10;• …"></textarea>
+          </div>
+          <div class="field">
+            <label>Areas to Improve</label>
+            <textarea id="f-gaps" rows="3" placeholder="• …&#10;• …"></textarea>
+          </div>
+          <div class="field">
+            <label>Vocabulary</label>
+            <textarea id="f-glossary" rows="3" placeholder="• **KPI** — …&#10;• **Stakeholder** — …"></textarea>
+          </div>
+          <div class="field">
+            <label>Quick Answer: Why I Fit</label>
+            <textarea id="f-whyme" rows="3" placeholder="…"></textarea>
+          </div>
+          <div class="field">
+            <label>Interview Phrases</label>
+            <textarea id="f-phrases" rows="3" placeholder="• …&#10;• …"></textarea>
+          </div>
+          <div class="field">
+            <label>Questions for the Recruiter</label>
+            <textarea id="f-questions" rows="3" placeholder="• …&#10;• …"></textarea>
+          </div>
+        </div>
+
+        <div class="form-section-title" style="margin-top:24px;padding-top:16px;border-top:1.5px solid var(--border)">Interview Preparation (alternate language) — optional</div>
+        <div class="form-grid one-col">
+          <div class="field">
+            <label>Strengths</label>
+            <textarea id="f-strengthsEn" rows="2" placeholder="• …&#10;• …"></textarea>
+          </div>
+          <div class="field">
+            <label>Areas to improve</label>
+            <textarea id="f-gapsEn" rows="2" placeholder="• …&#10;• …"></textarea>
+          </div>
+          <div class="field">
+            <label>Vocabulary</label>
+            <textarea id="f-glossaryEn" rows="2" placeholder="• **Payroll** — ...&#10;• **KPI** — ..."></textarea>
+          </div>
+          <div class="field">
+            <label>Why I fit?</label>
+            <textarea id="f-whymeEn" rows="2" placeholder="…"></textarea>
+          </div>
+          <div class="field">
+            <label>Interview phrases</label>
+            <textarea id="f-phrasesEn" rows="2" placeholder="• …&#10;• …"></textarea>
+          </div>
+          <div class="field">
+            <label>Questions for recruiter</label>
+            <textarea id="f-questionsEn" rows="2" placeholder="• …&#10;• …"></textarea>
+          </div>
+        </div>
+
+        <div class="form-section-title">Recruitment Notes</div>
+        <div class="form-grid one-col">
+          <div class="field">
+            <label>Notes</label>
+            <textarea id="f-notes" rows="3" placeholder="…"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <!-- IMPORT MODE -->
+      <div id="importMode" style="display:none">
+        <p style="font-size:.875rem;color:var(--ink-muted);margin-bottom:12px;line-height:1.6">
+          Paste text in the format below. Sections are recognized by numbering (1. 2. 3. …).
+        </p>
+        <textarea class="import-area" id="importText" placeholder="1. COMPANY:&#10;   NovaWorks&#10;&#10;2. JOB TITLE:&#10;   Product Operations Coordinator&#10;&#10;3. JOB LINK:&#10;   https://...&#10;&#10;4. COMPANY DESCRIPTION:&#10;   ...&#10;&#10;5. ROLE DESCRIPTION:&#10;   ...&#10;&#10;6. GROSS SALARY:&#10;   $90,000&#10;&#10;7. ESTIMATED NET SALARY:&#10;   $68,000&#10;&#10;8. SALARY STATUS:&#10;   confirmed&#10;&#10;9. WORK MODE:&#10;    Remote&#10;&#10;10. CONTRACT TYPE:&#10;    Full-time&#10;&#10;11. APPLICATION STATUS:&#10;    New&#10;&#10;12. TAGS / KEYWORDS:&#10;    AI, Operations&#10;&#10;13. STRENGTHS:&#10;    • ...&#10;&#10;14. AREAS TO IMPROVE:&#10;    • ...&#10;&#10;15. VOCABULARY:&#10;    • **KPI** — ...&#10;&#10;16. QUICK ANSWER: WHY I FIT?&#10;    ...&#10;&#10;17. INTERVIEW PHRASES:&#10;    • ...&#10;&#10;18. QUESTIONS FOR THE RECRUITER:&#10;    • ...&#10;&#10;19. RECRUITMENT NOTES:&#10;    ..."></textarea>
+        <div class="import-hint">
+          Each section starts with a number and a period (e.g. <code>1.</code>, <code>12.</code>). Regular numbers within the text are not treated as headers.
+        </div>
+      </div>
+    </div>
+
+    <div class="modal-footer">
+      <button class="btn btn-ghost" id="modalCancelBtn">Cancel</button>
+      <button class="btn btn-ghost" id="importParseBtn" style="display:none">📋 Import</button>
+      <button class="btn btn-primary" id="modalSaveBtn">Save Application</button>
+    </div>
+  </div>
+</div>
+
+<!-- CONFIRM DIALOG -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <h3 id="confirmTitle">Delete Application</h3>
+    <p id="confirmMsg">Are you sure you want to delete this application?</p>
+    <div class="confirm-btns">
+      <button class="btn btn-ghost" id="confirmNo">Cancel</button>
+      <button class="btn btn-danger" id="confirmYes">Delete</button>
+    </div>
+  </div>
+</div>
+
+<!-- ============================================================
+     JAVASCRIPT
+     ============================================================ -->
+<script>
+'use strict';
+
+// ============================================================
+//  STATE
+// ============================================================
+const STORAGE_KEY = 'job_tracker_portfolio_demo_v1'; // isolated from the original Polish app's storage
+
+// ============================================================
+//  PORTFOLIO DEMO DATA
+//  All companies, roles, salaries, notes and interview prep
+//  content below are entirely fictional and created solely to
+//  demonstrate the application's functionality.
+// ============================================================
+const DEMO_APPS = [
+  {
+    id: 'demo-1',
+    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 2,
+    company: 'NovaWorks',
+    role: 'AI Operations Specialist',
+    link: 'https://novaworks.example.com/careers/ai-operations-specialist',
+    companyDesc: 'NovaWorks builds AI-assisted operational tools for mid-size logistics companies, helping teams automate repetitive workflows and make faster, data-backed decisions.',
+    roleDesc: 'Own the day-to-day operation of internal AI tools: monitor model outputs, coordinate with the data team on quality issues, and translate operational pain points into clear automation requirements.',
+    salaryGross: '$95,000 - $110,000',
+    salaryNet: '$71,000 - $82,000',
+    salaryStatus: 'pewne',
+    workMode: 'Remote',
+    contract: 'Full-time',
+    status: 'Rozmowa',
+    tags: 'AI, Operations, Automation, Workflow, Remote',
+    strengths: '• Hands-on experience operating AI-assisted tools in a live business environment.\n• Comfortable translating messy operational data into structured, repeatable workflows.\n• Strong stakeholder communication — able to explain technical limitations in plain language.\n• Track record of building lightweight internal tools that save teams hours per week.',
+    gaps: '• Limited exposure to the specific ML monitoring stack NovaWorks uses internally.\n• Have not yet worked in logistics — should review domain-specific terminology.\n• Could strengthen knowledge of formal incident response processes for AI systems.',
+    glossary: '• **Model drift** - When a deployed model\'s performance degrades over time as real-world data shifts away from its training data.\n• **Human-in-the-loop** - A workflow design where a person reviews or approves AI-generated outputs before they take effect.\n• **SLA** - Service Level Agreement; a commitment to a measurable standard of performance, e.g. response time.\n• **Backlog grooming** - Regularly reviewing and reprioritizing a team\'s list of pending tasks or tickets.',
+    whyme: 'I fit this role because I combine hands-on AI tool-building experience with strong operational thinking. I am comfortable being the bridge between a technical system and the people who rely on it every day, and I enjoy turning ambiguous operational problems into workflows that are simple enough for anyone on the team to follow.',
+    phrases: '• "In my last project, I was responsible for monitoring tool performance and flagging issues before they affected the wider team."\n• "I tend to start by mapping out the current manual process before suggesting where automation actually adds value."\n• "I am comfortable working with incomplete information and iterating quickly."',
+    questions: '• How is success measured in this role during the first 6 months?\n• Which tools does the team currently use to manage workflows and reporting?\n• What are the biggest operational challenges this team is trying to solve right now?\n• How much room is there to propose and lead new automation initiatives?',
+    notes: 'Application submitted through the company careers page. Recruiter call scheduled for next week — role strongly aligned with AI-assisted workflow design experience. Prepare examples about process automation and cross-team collaboration.',
+    contacted: true,
+    history: [
+      { date: '06/02/2026', type: 'Email', note: 'Received confirmation that the application was received and is under review.' },
+      { date: '06/09/2026', type: 'Phone Call', note: 'Recruiter screening call — discussed background and role expectations. Moving to technical interview.' },
+    ],
+    strengthsEn: '• Hands-on AI tool experience.\n• Strong stakeholder communication.\n• Builds lightweight internal tools that save time.',
+    gapsEn: '• New to logistics domain terminology.\n• Limited exposure to formal AI incident response.',
+    glossaryEn: '• **Model drift** - performance degrading as real-world data shifts.\n• **SLA** - a measurable performance commitment.',
+    whymeEn: 'I combine AI tool-building experience with strong operational thinking, bridging technical systems and the people who rely on them.',
+    phrasesEn: '• "I start by mapping the manual process before automating it."\n• "I am comfortable working with incomplete information."',
+    questionsEn: '• How is success measured in the first 6 months?\n• What tools does the team use today?',
+  },
+  {
+    id: 'demo-2',
+    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 5,
+    company: 'BrightOps',
+    role: 'Business Analyst',
+    link: 'https://brightops.example.com/jobs/business-analyst',
+    companyDesc: 'BrightOps provides operations consulting and process-improvement software for fast-growing e-commerce brands.',
+    roleDesc: 'Analyze business processes across client accounts, identify inefficiencies, and produce clear recommendations supported by data. Work closely with product and client success teams.',
+    salaryGross: '$80,000 - $92,000',
+    salaryNet: '$61,000 - $69,000',
+    salaryStatus: 'szacowane',
+    workMode: 'Hybrid (3 days on-site)',
+    contract: 'Full-time',
+    status: 'Kontakt',
+    tags: 'Business Analysis, Process Improvement, Data, Stakeholder Management, Hybrid',
+    strengths: '• Strong analytical foundation — comfortable turning raw data into clear business recommendations.\n• Experience facilitating workshops with stakeholders across different seniority levels.\n• Practical understanding of process mapping and identifying bottlenecks.\n• Confident presenting findings to non-technical audiences.',
+    gaps: '• Limited direct experience in e-commerce; should review industry-specific KPIs before the interview.\n• Could deepen knowledge of BrightOps\' specific consulting methodology.\n• Want to prepare a stronger example of a process change I personally drove end-to-end.',
+    glossary: '• **Process mapping** - Visually documenting each step of a business process to identify inefficiencies.\n• **Stakeholder management** - Identifying, engaging and aligning the people affected by or interested in a project.\n• **Business requirements** - A documented description of what a business needs a solution to do.\n• **Change management** - The structured approach to helping people adopt new processes or tools.',
+    whyme: 'I fit this role because I enjoy turning operational chaos into structured, well-documented processes. I am naturally curious about why things work the way they do, and I am comfortable asking direct questions to get to the root of a problem before recommending a solution.',
+    phrases: '• "I usually start any process review by talking directly to the people doing the work day to day."\n• "I try to back every recommendation with a clear before-and-after metric."\n• "I am comfortable pushing back diplomatically when a proposed solution does not address the real bottleneck."',
+    questions: '• What does a typical client engagement look like from kickoff to delivery?\n• How does the team measure the impact of a process improvement after it is implemented?\n• What is the biggest recurring challenge analysts run into with client stakeholders?\n• Is there room to specialize in a particular industry vertical over time?',
+    notes: 'Initial application sent via LinkedIn. Hiring manager responded within 3 days expressing interest. Need to follow up with portfolio examples of past process-improvement work before the next call.',
+    contacted: true,
+    history: [
+      { date: '05/28/2026', type: 'Email', note: 'Hiring manager reached out directly after reviewing the application.' },
+    ],
+  },
+  {
+    id: 'demo-3',
+    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 9,
+    company: 'TalentFlow',
+    role: 'Talent Management Analyst',
+    link: 'https://talentflow.example.com/careers/talent-management-analyst',
+    companyDesc: 'TalentFlow builds workforce planning and talent analytics software used by HR teams at mid-size and enterprise companies.',
+    roleDesc: 'Support workforce planning initiatives by analyzing headcount data, turnover trends and talent pipeline health. Partner with HR business partners to translate insights into action.',
+    salaryGross: '$78,000 - $88,000',
+    salaryNet: '$60,000 - $67,000',
+    salaryStatus: 'pewne',
+    workMode: 'Remote',
+    contract: 'Full-time',
+    status: 'Nowa',
+    tags: 'Data, HR Analytics, Stakeholder Management, Remote, Excel',
+    strengths: '• Comfortable working with large, messy datasets and turning them into clear talent insights.\n• Experience presenting workforce data to non-HR stakeholders in an accessible way.\n• Detail-oriented with a strong sense of data quality and consistency.\n• Genuine interest in the people-side of business operations, not just the numbers.',
+    gaps: '• No formal HR background — should be ready to explain how analytical skills transfer.\n• Limited experience with TalentFlow\'s specific category of workforce planning software.\n• Want to prepare a clear example of identifying a trend that changed a business decision.',
+    glossary: '• **Headcount planning** - Forecasting how many people an organization will need in specific roles over time.\n• **Attrition / turnover** - The rate at which employees leave an organization.\n• **Talent pipeline** - The pool of current and potential candidates being developed for future roles.\n• **User adoption** - How effectively the intended users actually use a new tool or process.',
+    whyme: 'I fit this role because I am genuinely energized by finding patterns in data that explain real human behavior, like why people leave a team or where a hiring pipeline is getting stuck. I bring a structured, business-analyst mindset to a domain that benefits from more rigor.',
+    phrases: '• "I like to validate any trend in the data with a real conversation before presenting it as fact."\n• "I try to make sure every report I produce ends with a clear recommendation, not just numbers."\n• "I am used to working with imperfect or incomplete HR data and flagging where the gaps are."',
+    questions: '• What workforce planning challenge is the team most focused on solving this year?\n• How closely does this role work with HR business partners versus working independently on data?\n• What does a successful first 90 days look like for this position?\n• How is data quality maintained across different regional HR systems?',
+    notes: 'Application just submitted today through the company website. No response yet — plan to follow up if there is no reply within 10 business days.',
+    contacted: false,
+    history: [],
+  },
+  {
+    id: 'demo-4',
+    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 14,
+    company: 'DataNest',
+    role: 'Data & Process Analyst',
+    link: 'https://datanest.example.com/jobs/data-process-analyst',
+    companyDesc: 'DataNest is a data infrastructure startup helping mid-size companies centralize and clean their operational data before it reaches reporting tools.',
+    roleDesc: 'Investigate data quality issues across internal systems, document root causes, and design lightweight process changes that prevent the same issues from recurring.',
+    salaryGross: '$85,000 - $97,000',
+    salaryNet: '$64,000 - $73,000',
+    salaryStatus: 'szacowane',
+    workMode: 'Hybrid (2 days on-site)',
+    contract: 'Full-time',
+    status: 'Brak odpowiedzi > 2 tyg.',
+    tags: 'Data Quality, Process Improvement, SQL, Automation, Hybrid',
+    strengths: '• Strong instinct for spotting inconsistencies and tracing them back to their root cause.\n• Comfortable working across both technical (data) and non-technical (process) problems.\n• Practical experience documenting findings in a way both engineers and business stakeholders can use.\n• Self-directed — able to investigate ambiguous problems without constant guidance.',
+    gaps: '• Basic SQL knowledge — should review joins, aggregations and window functions before a technical interview.\n• Limited exposure to data pipeline tools specifically used by early-stage startups.\n• Would benefit from a stronger example of a data quality fix with measurable before/after impact.',
+    glossary: '• **Data quality** - The overall fitness of data for its intended use: accuracy, completeness, consistency.\n• **Root cause analysis** - A method for identifying the underlying source of a problem rather than just its symptoms.\n• **Workflow automation** - Using software to perform a repetitive manual process automatically.\n• **KPI** - Key Performance Indicator; a measurable value showing how effectively a goal is being achieved.',
+    whyme: 'I fit this role because I naturally enjoy the detective work of tracing a messy report back to the exact process step that caused it, then fixing that step rather than just patching the output. I am comfortable being equally hands-on with data and with the people whose workflows generate it.',
+    phrases: '• "When I find a data quality issue, my first question is always where in the process it actually originated."\n• "I try to fix the process, not just clean the output, so the same issue does not keep coming back."\n• "I am comfortable writing SQL queries to investigate an issue, but I always translate the finding into plain language for stakeholders."',
+    questions: '• What does the current data quality monitoring process look like day to day?\n• How does this role collaborate with the engineering team when a fix requires a system change?\n• What is the most common type of data issue the team encounters?\n• Is there a roadmap for more automated data quality monitoring in the next year?',
+    notes: 'Applied two weeks ago via the careers page. No response so far. Sent a polite follow-up email today referencing the original application date.',
+    contacted: false,
+    history: [
+      { date: '05/19/2026', type: 'Email', note: 'Submitted application with cover letter highlighting data-quality project experience.' },
+      { date: '06/02/2026', type: 'Email', note: 'Sent a short, polite follow-up after two weeks of silence.' },
+    ],
+  },
+  {
+    id: 'demo-5',
+    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 18,
+    company: 'CloudBridge',
+    role: 'Project Coordinator',
+    link: 'https://cloudbridge.example.com/careers/project-coordinator',
+    companyDesc: 'CloudBridge helps companies migrate legacy infrastructure to the cloud, combining technical migration services with hands-on project management support.',
+    roleDesc: 'Coordinate cross-functional migration projects: track timelines, manage stakeholder communication, and keep documentation and status reporting up to date across multiple concurrent projects.',
+    salaryGross: '$70,000 - $80,000',
+    salaryNet: '$54,000 - $61,000',
+    salaryStatus: 'pewne',
+    workMode: 'Remote',
+    contract: 'Full-time',
+    status: 'Oferta',
+    tags: 'Project Coordination, Stakeholder Management, Remote, Reporting',
+    strengths: '• Proven ability to manage multiple concurrent project timelines without losing track of details.\n• Clear, proactive written communication style — stakeholders are rarely surprised by a delay.\n• Comfortable acting as the single point of contact between technical and non-technical teams.\n• Calm under pressure when a project timeline shifts unexpectedly.',
+    gaps: '• Limited direct experience with cloud migration projects specifically — should review basic cloud terminology.\n• Have not yet used CloudBridge\'s specific project tracking tool; worth asking about onboarding support.',
+    glossary: '• **Cloud migration** - The process of moving data, applications, or infrastructure from on-premise systems to cloud platforms.\n• **Status reporting** - Regular, structured updates on a project\'s progress, risks, and blockers.\n• **Stakeholder alignment** - Ensuring everyone involved in a project shares the same expectations and priorities.\n• **Critical path** - The sequence of project tasks that determines the shortest possible project duration.',
+    whyme: 'I fit this role because I genuinely enjoy being the person who keeps a complex project organized and moving forward, especially when multiple teams are involved. I am proactive about flagging risks early rather than waiting for a deadline to slip.',
+    phrases: '• "I send a short written status update at the same time every week, so nobody has to chase me for information."\n• "When a timeline is at risk, I flag it as early as possible along with a proposed plan, not just the problem."\n• "I am comfortable being the person who asks a clarifying question in a meeting that other people are thinking but not saying."',
+    questions: '• What does a typical project lifecycle look like from kickoff to handover?\n• How many concurrent projects does a coordinator typically support?\n• What tools does the team currently use for tracking and reporting?\n• What would success look like for this role at the 90-day mark?',
+    notes: 'Received a verbal offer after three interview rounds. Reviewing the written offer details this week before responding. Very strong culture fit based on conversations with the hiring manager and team.',
+    contacted: true,
+    history: [
+      { date: '05/12/2026', type: 'Interview', note: 'First-round interview with hiring manager — focused on coordination style and tooling experience.' },
+      { date: '05/20/2026', type: 'Interview', note: 'Panel interview with two project leads — discussed handling competing priorities.' },
+      { date: '06/05/2026', type: 'Offer', note: 'Verbal offer received by phone. Written offer expected within 3 business days.' },
+    ],
+  },
+  {
+    id: 'demo-6',
+    createdAt: Date.now() - 1000 * 60 * 60 * 24 * 22,
+    company: 'PeoplePilot',
+    role: 'Customer Operations Specialist',
+    link: 'https://peoplepilot.example.com/jobs/customer-operations-specialist',
+    companyDesc: 'PeoplePilot is a B2B SaaS company providing scheduling and workforce management tools for retail and hospitality businesses.',
+    roleDesc: 'Own day-to-day customer operations: triage support requests, identify recurring issues, and work with product teams to prioritize fixes that reduce repeat tickets.',
+    salaryGross: '$62,000 - $70,000',
+    salaryNet: '$49,000 - $55,000',
+    salaryStatus: 'pewne',
+    workMode: 'Hybrid (2 days on-site)',
+    contract: 'Full-time',
+    status: 'Odrzucona',
+    tags: 'Customer Operations, Process Improvement, Reporting, Hybrid',
+    strengths: '• Strong customer empathy combined with a process-improvement mindset — not just resolving tickets, but reducing why they happen.\n• Comfortable identifying patterns across large volumes of support requests.\n• Clear communicator, both with frustrated customers and with internal product teams.',
+    gaps: '• Limited experience specifically in retail or hospitality verticals.\n• Could have prepared a stronger, quantified example of a support process I improved.',
+    glossary: '• **Ticket triage** - The process of reviewing and prioritizing incoming customer support requests.\n• **Repeat tickets** - Support requests caused by the same recurring underlying issue.\n• **Customer operations** - The function responsible for the end-to-end experience customers have with a product after purchase.\n• **Escalation path** - The defined process for moving an unresolved issue to a higher level of support.',
+    whyme: 'I fit this role because I see every support ticket as a small signal about a larger process gap. I enjoy the operational side of customer experience: not only solving the immediate issue, but reducing how often it happens again.',
+    phrases: '• "I always look for the pattern behind a spike in tickets before assuming it is a one-off."\n• "I try to close the loop with product teams so a recurring issue actually gets fixed, not just repeatedly resolved."',
+    questions: '• What does the relationship between customer operations and the product team look like day to day?\n• How is ticket volume trending, and what is currently the biggest source of repeat issues?\n• What tools does the team use to track recurring problems?',
+    notes: 'Completed two interview rounds. Received a rejection email citing a stronger match with another candidate\'s industry-specific experience. Asked for feedback — team was responsive and encouraged a future application.',
+    contacted: true,
+    history: [
+      { date: '04/22/2026', type: 'Interview', note: 'First interview with the customer operations lead.' },
+      { date: '04/30/2026', type: 'Interview', note: 'Second interview including a short case study exercise.' },
+      { date: '05/10/2026', type: 'Other', note: 'Received rejection email. Asked for feedback and received a constructive, encouraging response.' },
+    ],
+  },
+];
+
+
+let apps = [];
+let editingId     = null;
+let filterStatus  = 'all';
+let searchQuery   = '';
+let sortMode      = 'date-desc';
+let confirmCallback = null;
+let activeLang = 'pl'; // 'pl' | 'en' — language switcher
+
+// ============================================================
+//  STORAGE
+// ============================================================
+function save() {
+  try { localStorage.setItem(STORAGE_KEY, JSON.stringify(apps)); }
+  catch (e) { toast('Error saving data!', 'error'); }
+}
+function load() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (raw) apps = JSON.parse(raw);
+  } catch (e) { apps = []; }
+}
+
+// ============================================================
+//  UTILITIES
+// ============================================================
+function uid() { return Date.now().toString(36) + Math.random().toString(36).slice(2); }
+
+function esc(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+
+/**
+ * Simple markdown renderer — bold (**text**) and bullet lists (lines starting with • or -)
+ * Safe: input is escaped first, then markdown applied on escaped string.
+ */
+function renderMarkdown(raw) {
+  if (!raw) return '<em style="color:var(--ink-muted)">No data</em>';
+  let html = esc(raw);
+  // Bold: **text**
+  html = html.replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>');
+  const lines = html.split('\n');
+  let out = [];
+  let inList = false;
+  for (const line of lines) {
+    const trimmed = line.replace(/^[\s]+/, '');
+    if (/^[•\-]\s+/.test(trimmed)) {
+      if (!inList) { out.push('<ul>'); inList = true; }
+      out.push('<li>' + trimmed.replace(/^[•\-]\s+/, '') + '</li>');
+    } else {
+      if (inList) { out.push('</ul>'); inList = false; }
+      if (!trimmed) continue;
+      // ALL-CAPS lines (min 3 chars, letters/spaces) → bold heading
+      const stripped = trimmed.replace(/<[^>]+>/g, '');
+      if (stripped.length >= 3 && stripped === stripped.toUpperCase() && /[A-ZĄĆĘŁŃÓŚŹŻ]/.test(stripped)) {
+        out.push('<p><strong style="font-size:.95em;letter-spacing:.3px;color:var(--ink)">' + trimmed + '</strong></p>');
+      } else {
+        out.push('<p>' + trimmed + '</p>');
+      }
+    }
+  }
+  if (inList) out.push('</ul>');
+  return out.join('');
+}
+
+function statusColor(status) {
+  const map = {
+    'Nowa':                    'var(--s-new)',
+    'Brak odpowiedzi > 2 tyg.':'var(--s-wait)',
+    'Kontakt':                 'var(--s-contact)',
+    'Rozmowa':                 'var(--s-interview)',
+    'Oferta':                  'var(--s-offer)',
+    'Odrzucona':               'var(--s-rejected)',
+  };
+  return map[status] || 'var(--border)';
+}
+
+// Internal status values stay in their original form (data/filter compatibility);
+// this maps them to the English label shown in the UI.
+function statusLabel(status) {
+  const map = {
+    'Nowa':                     'New',
+    'Brak odpowiedzi > 2 tyg.': 'No Response',
+    'Kontakt':                  'Contacted',
+    'Rozmowa':                  'Interview',
+    'Oferta':                   'Offer',
+    'Odrzucona':                'Rejected',
+  };
+  return map[status] || esc(status);
+}
+
+function toast(msg, type = '') {
+  const el = document.createElement('div');
+  el.className = `toast ${type}`;
+  el.textContent = msg;
+  document.getElementById('toastContainer').appendChild(el);
+  setTimeout(() => el.remove(), 3000);
+}
+
+function formatDate(iso) {
+  if (!iso) return '';
+  try { return new Date(iso).toLocaleDateString('en-US', { day:'2-digit', month:'2-digit', year:'numeric' }); }
+  catch { return iso; }
+}
+
+function shortDate(ts) {
+  if (!ts) return '';
+  try { return new Date(ts).toLocaleDateString('en-US', { day:'2-digit', month:'2-digit', year:'2-digit' }); }
+  catch { return ''; }
+}
+
+// ============================================================
+//  DASHBOARD STATS
+// ============================================================
+function updateStats() {
+  const ACTIVE = ['Nowa','Kontakt','Rozmowa','Brak odpowiedzi > 2 tyg.'];
+  document.getElementById('stat-all').textContent      = apps.length;
+  document.getElementById('stat-active').textContent   = apps.filter(a => ACTIVE.includes(a.status)).length;
+  document.getElementById('stat-offer').textContent    = apps.filter(a => a.status === 'Oferta').length;
+  document.getElementById('stat-rejected').textContent = apps.filter(a => a.status === 'Odrzucona').length;
+}
+
+// ============================================================
+//  FILTER + SEARCH + SORT
+// ============================================================
+function getVisible() {
+  let list = apps.slice();
+  const q = searchQuery.trim().toLowerCase();
+  if (filterStatus !== 'all') list = list.filter(a => a.status === filterStatus);
+  if (q) {
+    list = list.filter(a => {
+      const hay = [a.company, a.role, a.tags, a.companyDesc, a.roleDesc].join(' ').toLowerCase();
+      return q.split(/\s+/).every(w => hay.includes(w));
+    });
+  }
+  list.sort((a, b) => {
+    if (sortMode === 'date-desc') return (b.createdAt||0)-(a.createdAt||0);
+    if (sortMode === 'date-asc')  return (a.createdAt||0)-(b.createdAt||0);
+    if (sortMode === 'company')   return (a.company||'').localeCompare(b.company||'','en');
+    if (sortMode === 'status') {
+      const order = ['Oferta','Rozmowa','Kontakt','Nowa','Brak odpowiedzi > 2 tyg.','Odrzucona'];
+      return order.indexOf(a.status)-order.indexOf(b.status);
+    }
+    return 0;
+  });
+  return list;
+}
+
+// ============================================================
+//  RENDER
+// ============================================================
+function render() {
+  updateStats();
+  const list      = getVisible();
+  const container = document.getElementById('appList');
+  const empty     = document.getElementById('emptyState');
+
+  if (list.length === 0) { container.innerHTML = ''; empty.style.display = 'block'; return; }
+  empty.style.display = 'none';
+
+  // Preserve expanded state
+  const expandedIds = new Set(
+    [...container.querySelectorAll('.app-card.expanded')].map(el => el.dataset.id)
+  );
+  // Preserve active tab state
+  const activeTabs = {};
+  container.querySelectorAll('.app-card.expanded').forEach(card => {
+    const activeTab = card.querySelector('.tab-btn.active');
+    if (activeTab) activeTabs[card.dataset.id] = activeTab.dataset.tab;
+  });
+  // Preserve interview mode state
+  const interviewIds = new Set(
+    [...container.querySelectorAll('.app-card .tab-panel[data-panel="prep"].interview-active')]
+      .map(el => el.closest('.app-card').dataset.id)
+  );
+
+  container.innerHTML = list.map(app =>
+    renderCard(app, expandedIds.has(app.id), activeTabs[app.id] || 'overview', interviewIds.has(app.id))
+  ).join('');
+
+  attachCardListeners();
+}
+
+// ============================================================
+//  RENDER CARD
+// ============================================================
+function renderCard(app, expanded, activeTab, interviewMode) {
+  const accent = statusColor(app.status);
+  const tags   = (app.tags || '').split(',').map(t => t.trim()).filter(Boolean);
+  return `
+<div class="app-card ${expanded ? 'expanded' : ''}" data-id="${app.id}">
+  <div class="app-card-header js-card-toggle">
+    <div class="app-card-accent" style="background:${accent}"></div>
+    <div class="app-card-main">
+      <div class="app-card-company">${esc(app.company)}</div>
+      <div class="app-card-role">${esc(app.role)}</div>
+      <div class="app-card-badges">
+        ${app.salaryGross ? `<span class="badge badge-salary">💰 ${esc(app.salaryGross)} gross</span>` : (app.salary ? `<span class="badge badge-salary">💰 ${esc(app.salary)}</span>` : '')}
+        ${app.salaryNet   ? `<span class="badge badge-net">🟢 ${esc(app.salaryNet)} net</span>` : ''}
+        ${app.workMode    ? `<span class="badge badge-mode">🏠 ${esc(app.workMode)}</span>` : ''}
+        ${app.contract    ? `<span class="badge badge-contract">📄 ${esc(app.contract)}</span>` : ''}
+      </div>
+    </div>
+    <div class="app-card-meta">
+      <span class="badge badge-status" style="background:${accent}">${statusLabel(app.status)}</span>
+    </div>
+    <button class="app-card-toggle" aria-label="Expand / collapse">▾</button>
+  </div>
+
+  <div class="app-card-detail">
+    <div class="tabs">
+      <button class="tab-btn ${activeTab==='overview'?'active':''}" data-tab="overview">📋 Overview</button>
+      <button class="tab-btn ${activeTab==='prep'?'active':''}"     data-tab="prep">🎯 Preparation</button>
+      <button class="tab-btn ${activeTab==='contact'?'active':''}"  data-tab="contact">📞 Contact &amp; Notes</button>
+    </div>
+
+    <!-- ==================== OVERVIEW ==================== -->
+    <div class="tab-panel ${activeTab==='overview'?'active':''}" data-panel="overview">
+      <div class="overview-cards-grid">
+        <div class="overview-card oc-sky">
+          <div class="oc-icon">🏢</div>
+          <div class="oc-label">Company</div>
+          <div class="oc-value">${esc(app.company) || '—'}</div>
+        </div>
+        <div class="overview-card oc-lavender">
+          <div class="oc-icon">💼</div>
+          <div class="oc-label">Job Title</div>
+          <div class="oc-value">${esc(app.role) || '—'}</div>
+        </div>
+        <div class="overview-card oc-sage">
+          <div class="oc-icon">💰</div>
+          <div class="oc-label">Gross Salary</div>
+          <div class="oc-value">
+            <div class="salary-wrap">
+              <span>${app.salaryGross ? esc(app.salaryGross) : (app.salary ? esc(app.salary) : '—')}</span>
+              ${(app.salaryGross||app.salary) ? `<span class="salary-badge ${app.salaryStatus||'pewne'}">${app.salaryStatus==='szacowane'?'Est.':'Confirmed'}</span>` : ''}
+            </div>
+          </div>
+        </div>
+        <div class="overview-card oc-mint">
+          <div class="oc-icon">🟢</div>
+          <div class="oc-label">Net Salary</div>
+          <div class="oc-value">${app.salaryNet ? esc(app.salaryNet) : '—'}</div>
+        </div>
+        <div class="overview-card oc-butter">
+          <div class="oc-icon">🏠</div>
+          <div class="oc-label">Work Mode</div>
+          <div class="oc-value">${esc(app.workMode) || '—'}</div>
+        </div>
+        <div class="overview-card oc-peach">
+          <div class="oc-icon">📄</div>
+          <div class="oc-label">Contract Type</div>
+          <div class="oc-value">${esc(app.contract) || '—'}</div>
+        </div>
+        <div class="overview-card oc-rose">
+          <div class="oc-icon">🔖</div>
+          <div class="oc-label">Status</div>
+          <div class="oc-value">
+            <span class="badge badge-status" style="background:${accent}">${statusLabel(app.status)}</span>
+          </div>
+        </div>
+        ${app.dateApplied ? `
+        <div class="overview-card oc-cream">
+          <div class="oc-icon">📅</div>
+          <div class="oc-label">Application Date</div>
+          <div class="oc-value">${esc(app.dateApplied)}</div>
+        </div>` : ''}
+        ${app.link ? `
+        <div class="overview-card oc-lavender" style="flex: 0 1 auto; min-width: 140px;">
+          <div class="oc-icon">🔗</div>
+          <div class="oc-label">Job Link</div>
+          <div class="oc-value"><a href="${esc(app.link)}" target="_blank" rel="noopener">🔗 Open Listing</a></div>
+        </div>` : ''}
+      </div>
+
+      ${app.companyDesc || app.roleDesc ? `
+      <div class="overview-cards-full">
+        ${app.companyDesc ? `
+        <div class="overview-desc-card oc-sky">
+          <div class="oc-label">🏢 Company Description</div>
+          <div class="oc-text">${renderMarkdown(app.companyDesc)}</div>
+        </div>` : ''}
+        ${app.roleDesc ? `
+        <div class="overview-desc-card oc-lavender">
+          <div class="oc-label">💼 Role Description</div>
+          <div class="oc-text">${renderMarkdown(app.roleDesc)}</div>
+        </div>` : ''}
+      </div>` : ''}
+
+      <!-- tags hidden from display, still searchable -->
+    </div>
+
+    <!-- ==================== PREPARATION ==================== -->
+    <div class="tab-panel ${activeTab==='prep'?'active':''} ${interviewMode?'interview-active':''}" data-panel="prep">
+
+      <!-- Interview sticky header (shown when interview-active) -->
+      <div class="interview-sticky ${interviewMode?'visible':''}" data-interview-sticky>
+        <div>
+          <span class="is-company">${esc(app.company)}</span>
+          <span class="is-role">${esc(app.role)}</span>
+        </div>
+        ${(app.salaryGross||app.salary) ? `<span class="is-salary">💰 ${esc(app.salaryGross||app.salary)} gross</span>` : ''}
+        ${app.salaryNet ? `<span class="is-salary" style="background:var(--mint-pale);border-color:var(--mint-light)">🟢 ${esc(app.salaryNet)} net</span>` : ''}
+        ${app.link ? `<span class="is-link"><a href="${esc(app.link)}" target="_blank" rel="noopener">🔗 Open Listing</a></span>` : ''}
+        <span class="is-lang">
+          <div class="lang-switcher" data-card-lang-sw>
+            <button class="lang-btn ${activeLang==='pl'?'active':''}" data-lang="pl">Standard</button>
+            <button class="lang-btn ${activeLang==='en'?'active':''}" data-lang="en">Concise</button>
+          </div>
+        </span>
+      </div>
+
+      <!-- Top bar: interview toggle + view switcher (shown when not in interview mode) -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+        <div class="lang-switcher" data-card-lang-sw>
+          <button class="lang-btn ${activeLang==='pl'?'active':''}" data-lang="pl">Standard</button>
+          <button class="lang-btn ${activeLang==='en'?'active':''}" data-lang="en">Concise</button>
+        </div>
+        <button class="btn btn-interview ${interviewMode?'active':''}" data-action="toggle-interview"
+          style="font-size:.8rem;padding:6px 14px">
+          ${interviewMode ? '✅ Interview Mode' : '📞 Interview Mode'}
+        </button>
+      </div>
+
+      <div class="prep-grid">
+        <!-- STRENGTHS — show in interview -->
+        <div class="module module-show open" data-key="strengths">
+          <div class="module-header">
+            <span class="module-title"><span class="module-icon">💪</span><span data-pl>Strengths</span><span data-en style="display:none">Strengths</span></span>
+            <span class="module-toggle"></span>
+          </div>
+          <div class="module-body">
+            <div class="module-content" data-pl>${renderMarkdown(app.strengths)}</div>
+            <div class="module-content" data-en style="display:none">${renderMarkdown(app.strengthsEn||'')}</div>
+          </div>
+        </div>
+        <!-- GAPS — show in interview -->
+        <div class="module module-interview-show open" data-key="gaps">
+          <div class="module-header">
+            <span class="module-title"><span class="module-icon">📚</span><span data-pl>Areas to Improve</span><span data-en style="display:none">Areas to improve</span></span>
+            <span class="module-toggle"></span>
+          </div>
+          <div class="module-body">
+            <div class="module-content" data-pl>${renderMarkdown(app.gaps)}</div>
+            <div class="module-content" data-en style="display:none">${renderMarkdown(app.gapsEn||'')}</div>
+          </div>
+        </div>
+        <!-- GLOSSARY — show in interview -->
+        <div class="module module-interview-show open" data-key="glossary">
+          <div class="module-header">
+            <span class="module-title"><span class="module-icon">📖</span><span data-pl>Vocabulary</span><span data-en style="display:none">Vocabulary</span></span>
+            <span class="module-toggle"></span>
+          </div>
+          <div class="module-body">
+            <div class="module-content" data-pl>${renderMarkdown(app.glossary)}</div>
+            <div class="module-content" data-en style="display:none">${renderMarkdown(app.glossaryEn||'')}</div>
+          </div>
+        </div>
+        <!-- WHY ME — hide in interview -->
+        <div class="module module-hide open" data-key="whyme">
+          <div class="module-header">
+            <span class="module-title"><span class="module-icon">⭐</span><span data-pl>Why I Fit</span><span data-en style="display:none">Why I fit?</span></span>
+            <span class="module-toggle"></span>
+          </div>
+          <div class="module-body">
+            <div class="module-content" data-pl>${renderMarkdown(app.whyme)}</div>
+            <div class="module-content" data-en style="display:none">${renderMarkdown(app.whymeEn||'')}</div>
+          </div>
+        </div>
+        <!-- PHRASES — show in interview -->
+        <div class="module module-show open" data-key="phrases">
+          <div class="module-header">
+            <span class="module-title"><span class="module-icon">💬</span><span data-pl>Interview Phrases</span><span data-en style="display:none">Interview phrases</span></span>
+            <span class="module-toggle"></span>
+          </div>
+          <div class="module-body">
+            <div class="module-content" data-pl>${renderMarkdown(app.phrases)}</div>
+            <div class="module-content" data-en style="display:none">${renderMarkdown(app.phrasesEn||'')}</div>
+          </div>
+        </div>
+        <!-- QUESTIONS — show in interview -->
+        <div class="module module-show open" data-key="questions">
+          <div class="module-header">
+            <span class="module-title"><span class="module-icon">❓</span><span data-pl>Questions for the Recruiter</span><span data-en style="display:none">Questions for recruiter</span></span>
+            <span class="module-toggle"></span>
+          </div>
+          <div class="module-body">
+            <div class="module-content" data-pl>${renderMarkdown(app.questions)}</div>
+            <div class="module-content" data-en style="display:none">${renderMarkdown(app.questionsEn||'')}</div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ==================== CONTACT ==================== -->
+    <div class="tab-panel ${activeTab==='contact'?'active':''}" data-panel="contact">
+      <div class="contact-grid">
+
+        <!-- Status block -->
+        <div class="contact-block cb-status">
+          <div class="contact-block-title">🔖 Application Status</div>
+          <select class="contact-status-select" data-action="change-status">
+            ${['Nowa','Brak odpowiedzi > 2 tyg.','Kontakt','Rozmowa','Oferta','Odrzucona']
+              .map(s=>`<option value="${s}" ${app.status===s?'selected':''}>${statusLabel(s)}</option>`).join('')}
+          </select>
+        </div>
+
+        <!-- Phone contact -->
+        <div class="contact-block cb-phone">
+          <div class="contact-block-title">📱 Phone Contact</div>
+          <label class="contact-checkbox-label">
+            <input type="checkbox" class="contact-checkbox" ${app.contacted?'checked':''}>
+            Someone reached out / called
+          </label>
+        </div>
+
+        <!-- Notes -->
+        <div class="contact-block cb-notes" style="grid-column:1/-1">
+          <div class="contact-block-title">📝 Recruitment Notes</div>
+          <textarea class="contact-notes-area" rows="4" placeholder="Enter recruitment notes…">${esc(app.notes||'')}</textarea>
+          <div style="display:flex;justify-content:flex-end;margin-top:8px">
+            <button class="btn btn-primary" style="font-size:.8rem" data-action="save-notes">💾 Save Notes</button>
+          </div>
+        </div>
+
+        <!-- History -->
+        <div class="contact-block cb-history" style="grid-column:1/-1">
+          <div class="contact-block-title">📅 Contact History</div>
+          <div class="history-list">
+            ${(app.history||[]).length === 0
+              ? '<p style="font-size:.875rem;color:var(--ink-muted)">No history entries yet.</p>'
+              : (app.history||[]).map((h,i) => renderHistoryEntry(h,i)).join('')
+            }
+          </div>
+          <div class="add-history-form">
+            <div class="form-row">
+              <div class="form-field">
+                <label>Date</label>
+                <input type="date" class="hist-date" value="${new Date().toISOString().slice(0,10)}">
+              </div>
+              <div class="form-field">
+                <label>Contact Type</label>
+                <select class="hist-type">
+                  <option>Phone Call</option>
+                  <option>Email</option>
+                  <option>Interview</option>
+                  <option>Recruitment Task</option>
+                  <option>Offer</option>
+                  <option>Other</option>
+                </select>
+              </div>
+            </div>
+            <div class="form-field">
+              <label>Note</label>
+              <textarea class="hist-note" rows="2" placeholder="What happened?"></textarea>
+            </div>
+            <div style="display:flex;gap:8px;justify-content:flex-end">
+              <button class="btn btn-ghost" data-action="cancel-history" style="font-size:.8rem">Cancel</button>
+              <button class="btn btn-primary" data-action="save-history" style="font-size:.8rem">Add Entry</button>
+            </div>
+          </div>
+          <button class="btn btn-ghost" style="margin-top:10px;font-size:.8rem" data-action="add-history">+ Add History Entry</button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- CARD FOOTER ACTIONS -->
+    <div class="detail-actions">
+      <button class="btn btn-ghost" style="font-size:.8rem" data-action="edit">✏️ Edit</button>
+      <button class="btn btn-ghost" style="font-size:.8rem;color:#5b7fa6;border-color:#c0d4e8" data-action="export-pdf">📄 Export PDF</button>
+      <button class="btn btn-danger" style="font-size:.8rem" data-action="delete">🗑 Delete</button>
+    </div>
+  </div>
+</div>`;
+}
+
+function renderHistoryEntry(h, idx) {
+  return `
+<div class="history-entry" data-hist-idx="${idx}">
+  <div class="history-entry-top">
+    <span class="history-date">${esc(h.date)}</span>
+    <span class="history-type">${esc(h.type)}</span>
+  </div>
+  <div class="history-note">${esc(h.note)}</div>
+  <div class="history-entry-actions">
+    <button class="btn btn-danger" style="font-size:.72rem;padding:3px 8px" data-action="delete-history" data-hist-idx="${idx}">Delete</button>
+  </div>
+</div>`;
+}
+
+// ============================================================
+//  CARD LISTENERS
+// ============================================================
+function attachCardListeners() {
+  document.querySelectorAll('.app-card').forEach(card => {
+    const id = card.dataset.id;
+
+    // Toggle expand — guard only against buttons inside header (edit/delete etc.),
+    // NOT against the header itself (removed data-action="toggle" from header div)
+    card.querySelector('.js-card-toggle').addEventListener('click', e => {
+      // Ignore clicks on any button/select inside the header
+      if (e.target.closest('button, select, a, input')) return;
+      card.classList.toggle('expanded');
+      if (card.classList.contains('expanded')) {
+        card.querySelectorAll('.tab-btn').forEach((b,i) => b.classList.toggle('active', i===0));
+        card.querySelectorAll('.tab-panel').forEach((p,i) => p.classList.toggle('active', i===0));
+      }
+    });
+
+    // Tabs
+    card.querySelectorAll('.tab-btn').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const tgt = btn.dataset.tab;
+        card.querySelectorAll('.tab-btn').forEach(b => b.classList.toggle('active', b===btn));
+        card.querySelectorAll('.tab-panel').forEach(p => p.classList.toggle('active', p.dataset.panel===tgt));
+      });
+    });
+
+    // Module accordion (independent open/close)
+    card.querySelectorAll('.module-header').forEach(mh => {
+      mh.addEventListener('click', () => mh.closest('.module').classList.toggle('open'));
+    });
+
+    // Language switcher — all switchers in this card sync together
+    function applyLangToCard(lang) {
+      activeLang = lang;
+      // Sync all switcher buttons across all cards
+      document.querySelectorAll('.lang-btn').forEach(b => b.classList.toggle('active', b.dataset.lang === lang));
+      // Show/hide pl/en content in this card
+      card.querySelectorAll('[data-pl]').forEach(el => el.style.display = lang === 'pl' ? '' : 'none');
+      card.querySelectorAll('[data-en]').forEach(el => el.style.display = lang === 'en' ? '' : 'none');
+    }
+    card.querySelectorAll('[data-card-lang-sw] .lang-btn').forEach(btn => {
+      btn.addEventListener('click', e => {
+        e.stopPropagation();
+        applyLangToCard(btn.dataset.lang);
+      });
+    });
+    // Apply current global lang on mount
+    applyLangToCard(activeLang);
+
+    // All [data-action] buttons
+    card.querySelectorAll('[data-action]').forEach(el => {
+      el.addEventListener('click', e => {
+        e.stopPropagation();
+        const action = el.dataset.action;
+        const app    = apps.find(a => a.id === id);
+        if (!app) return;
+
+        if (action === 'edit') { openEditModal(app); }
+
+        if (action === 'export-pdf') {
+          toast('Generating PDF…');
+          setTimeout(() => {
+            try {
+              const doc = generateAppPDF([app]);
+              const fname = (app.company || 'application').replace(/[^a-zA-Z0-9]/g, '_').slice(0,30);
+              doc.save(`${fname}.pdf`);
+              toast('PDF exported ✓', 'success');
+            } catch(e) { console.error(e); toast('Error generating PDF.', 'error'); }
+          }, 50);
+        }
+
+        if (action === 'delete') {
+          openConfirm('Delete Application',
+            `Are you sure you want to delete the application for <strong>${esc(app.company)}</strong>? This action cannot be undone.`,
+            () => {
+              apps = apps.filter(a => a.id !== id);
+              save(); render();
+              toast('Application deleted.', 'success');
+            }
+          );
+        }
+
+        if (action === 'save-notes') {
+          const ta = card.querySelector('.contact-notes-area');
+          app.notes = ta.value;
+          save();
+          toast('Notes saved ✓', 'success');
+        }
+
+        if (action === 'change-status') {
+          // handled via 'change' event below
+        }
+
+        if (action === 'add-history') {
+          card.querySelector('.add-history-form').classList.add('open');
+        }
+        if (action === 'cancel-history') {
+          card.querySelector('.add-history-form').classList.remove('open');
+        }
+        if (action === 'save-history') {
+          const date = card.querySelector('.hist-date').value;
+          const type = card.querySelector('.hist-type').value;
+          const note = card.querySelector('.hist-note').value.trim();
+          if (!date || !note) { toast('Please provide a date and a note.', 'error'); return; }
+          if (!app.history) app.history = [];
+          app.history.push({ date: formatDate(date), type, note });
+          save(); render();
+          toast('Entry added ✓', 'success');
+        }
+        if (action === 'delete-history') {
+          const idx = parseInt(el.dataset.histIdx, 10);
+          app.history.splice(idx, 1);
+          save(); render();
+          toast('Entry deleted.', 'success');
+        }
+
+        // Interview mode
+        if (action === 'toggle-interview') {
+          const prepPanel = card.querySelector('.tab-panel[data-panel="prep"]');
+          const isActive  = prepPanel.classList.toggle('interview-active');
+          // Update all interview toggle buttons in this card
+          card.querySelectorAll('[data-action="toggle-interview"]').forEach(b => {
+            b.textContent = isActive ? '✅ Interview Mode' : '📞 Interview Mode';
+            b.classList.toggle('active', isActive);
+          });
+          // Show/hide sticky header
+          card.querySelectorAll('[data-interview-sticky]').forEach(s => s.classList.toggle('visible', isActive));
+        }
+      });
+    });
+
+    // Status dropdown change
+    const statusSel = card.querySelector('.contact-status-select');
+    if (statusSel) {
+      statusSel.addEventListener('change', () => {
+        const app = apps.find(a => a.id === id);
+        if (!app) return;
+        app.status = statusSel.value;
+        save(); render();
+        toast('Status updated ✓', 'success');
+      });
+    }
+
+    // Checkbox change
+    const cb = card.querySelector('.contact-checkbox');
+    if (cb) {
+      cb.addEventListener('change', () => {
+        const app = apps.find(a => a.id === id);
+        if (app) { app.contacted = cb.checked; save(); }
+      });
+    }
+  });
+}
+
+// ============================================================
+//  MODAL — ADD / EDIT
+// ============================================================
+const addModal     = document.getElementById('addModal');
+const modalTitle   = document.getElementById('modalTitle');
+const modalSaveBtn = document.getElementById('modalSaveBtn');
+const importParseBtn = document.getElementById('importParseBtn');
+
+function openAddModal() {
+  editingId = null;
+  modalTitle.textContent = 'New Application';
+  clearForm();
+  switchMode('manual');
+  addModal.classList.add('open');
+  setTimeout(() => document.getElementById('f-company').focus(), 100);
+}
+
+function openEditModal(app) {
+  editingId = app.id;
+  modalTitle.textContent = 'Edit Application';
+  fillForm(app);
+  switchMode('manual');
+  addModal.classList.add('open');
+}
+
+function closeModal() { addModal.classList.remove('open'); editingId = null; }
+
+function clearForm() {
+  ['f-company','f-role','f-link','f-salaryGross','f-salaryNet','f-dateApplied','f-tags',
+   'f-companyDesc','f-roleDesc','f-strengths','f-gaps',
+   'f-glossary','f-whyme','f-phrases','f-questions','f-notes',
+   'f-mode','f-contract',
+   'f-strengthsEn','f-gapsEn','f-glossaryEn','f-whymeEn','f-phrasesEn','f-questionsEn'].forEach(id => {
+    const el = document.getElementById(id);
+    if (el) el.value = '';
+  });
+  document.getElementById('f-status').value = 'Nowa';
+  document.getElementById('f-salaryStatus').value = 'pewne';
+  document.getElementById('importText').value = '';
+}
+
+function fillForm(app) {
+  document.getElementById('f-company').value      = app.company || '';
+  document.getElementById('f-role').value         = app.role || '';
+  document.getElementById('f-link').value         = app.link || '';
+  document.getElementById('f-salaryGross').value  = app.salaryGross || '';
+  document.getElementById('f-salaryNet').value    = app.salaryNet || '';
+  document.getElementById('f-salaryStatus').value = app.salaryStatus || 'pewne';
+  document.getElementById('f-dateApplied').value  = app.dateApplied || '';
+  document.getElementById('f-mode').value         = app.workMode || '';
+  document.getElementById('f-contract').value     = app.contract || '';
+  document.getElementById('f-status').value       = app.status || 'Nowa';
+  document.getElementById('f-tags').value         = app.tags || '';
+  document.getElementById('f-companyDesc').value  = app.companyDesc || '';
+  document.getElementById('f-roleDesc').value     = app.roleDesc || '';
+  document.getElementById('f-strengths').value    = app.strengths || '';
+  document.getElementById('f-gaps').value         = app.gaps || '';
+  document.getElementById('f-glossary').value     = app.glossary || '';
+  document.getElementById('f-whyme').value        = app.whyme || '';
+  document.getElementById('f-phrases').value      = app.phrases || '';
+  document.getElementById('f-questions').value    = app.questions || '';
+  document.getElementById('f-notes').value        = app.notes || '';
+  const setEng = (id, val) => { const el = document.getElementById(id); if(el) el.value = val||''; };
+  setEng('f-strengthsEn', app.strengthsEn);
+  setEng('f-gapsEn',      app.gapsEn);
+  setEng('f-glossaryEn',  app.glossaryEn);
+  setEng('f-whymeEn',     app.whymeEn);
+  setEng('f-phrasesEn',   app.phrasesEn);
+  setEng('f-questionsEn', app.questionsEn);
+}
+
+function getFormData() {
+  return {
+    company:      document.getElementById('f-company').value.trim(),
+    role:         document.getElementById('f-role').value.trim(),
+    link:         document.getElementById('f-link').value.trim(),
+    salaryGross:  document.getElementById('f-salaryGross').value.trim(),
+    salaryNet:    document.getElementById('f-salaryNet').value.trim(),
+    salaryStatus: document.getElementById('f-salaryStatus').value,
+    dateApplied:  document.getElementById('f-dateApplied').value.trim(),
+    workMode:     document.getElementById('f-mode').value.trim(),
+    contract:     document.getElementById('f-contract').value.trim(),
+    status:       document.getElementById('f-status').value,
+    tags:         document.getElementById('f-tags').value.trim(),
+    companyDesc:  document.getElementById('f-companyDesc').value.trim(),
+    roleDesc:     document.getElementById('f-roleDesc').value.trim(),
+    strengths:    document.getElementById('f-strengths').value.trim(),
+    gaps:         document.getElementById('f-gaps').value.trim(),
+    glossary:     document.getElementById('f-glossary').value.trim(),
+    whyme:        document.getElementById('f-whyme').value.trim(),
+    phrases:      document.getElementById('f-phrases').value.trim(),
+    questions:    document.getElementById('f-questions').value.trim(),
+    notes:        document.getElementById('f-notes').value.trim(),
+    strengthsEn:  (document.getElementById('f-strengthsEn')||{value:''}).value.trim(),
+    gapsEn:       (document.getElementById('f-gapsEn')||{value:''}).value.trim(),
+    glossaryEn:   (document.getElementById('f-glossaryEn')||{value:''}).value.trim(),
+    whymeEn:      (document.getElementById('f-whymeEn')||{value:''}).value.trim(),
+    phrasesEn:    (document.getElementById('f-phrasesEn')||{value:''}).value.trim(),
+    questionsEn:  (document.getElementById('f-questionsEn')||{value:''}).value.trim(),
+  };
+}
+
+function saveApp() {
+  const data = getFormData();
+  if (!data.company) { toast('Please enter a company name.', 'error'); document.getElementById('f-company').focus(); return; }
+  if (!data.role)    { toast('Please enter a job title.', 'error');  document.getElementById('f-role').focus();    return; }
+
+  if (editingId) {
+    const idx = apps.findIndex(a => a.id === editingId);
+    if (idx > -1) apps[idx] = { ...apps[idx], ...data };
+    toast('Application updated ✓', 'success');
+  } else {
+    apps.unshift({ id: uid(), createdAt: Date.now(), contacted: false, history: [], ...data });
+    toast('Application added ✓', 'success');
+  }
+  save(); closeModal(); render();
+}
+
+// ============================================================
+//  MODE TOGGLE (manual / import)
+// ============================================================
+function switchMode(mode) {
+  document.querySelectorAll('.mode-btn').forEach(b => b.classList.toggle('active', b.dataset.mode === mode));
+  document.getElementById('manualMode').style.display  = mode === 'manual' ? 'block' : 'none';
+  document.getElementById('importMode').style.display  = mode === 'import' ? 'block' : 'none';
+  importParseBtn.style.display = mode === 'import' ? 'inline-flex' : 'none';
+  modalSaveBtn.style.display   = mode === 'manual' ? 'inline-flex' : 'none';
+}
+
+document.getElementById('modeToggle').addEventListener('click', e => {
+  const btn = e.target.closest('.mode-btn');
+  if (btn) switchMode(btn.dataset.mode);
+});
+
+// ============================================================
+//  IMPORT PARSER  (fixed: headers are stripped, not imported as content)
+// ============================================================
+function parseImport(text) {
+  // Truncate input at the ENG marker so the ENG block never bleeds
+  // into the last numbered section (e.g. section 19 NOTATKI).
+  const engMarkerIdx = text.search(/\n\s*ENG\s*(\n|$)/i);
+  const plText = engMarkerIdx >= 0 ? text.slice(0, engMarkerIdx) : text;
+
+  const lines = plText.split('\n');
+  const sections = {};
+  let currentSec  = null;
+  let currentLines = [];
+
+  // Match ONLY lines starting with N. (optional leading whitespace)
+  // The capture group 2 holds everything after "N. " — this is the HEADER LABEL, not content
+  const sectionRe = /^\s*(\d+)\.\s+(.*)/;
+
+  const flush = () => {
+    if (currentSec !== null) {
+      sections[currentSec] = currentLines.join('\n').trim();
+    }
+  };
+
+  for (const line of lines) {
+    const m = line.match(sectionRe);
+    if (m) {
+      flush();
+      currentSec   = parseInt(m[1], 10);
+      // m[2] is the header label (e.g. "FIRMA:" or "SZYBKA ODPOWIEDŹ: DLACZEGO PASUJĘ?")
+      // We strip the entire header label — content starts from the NEXT lines
+      currentLines = [];
+    } else if (currentSec !== null) {
+      currentLines.push(line);
+    }
+  }
+  flush();
+
+  // Helper: single-line value (trim bullets/dashes from start)
+  const get = n => (sections[n] || '').replace(/^[\s\u2022\-•]+/, '').trim();
+  // Helper: multi-line value — strip leading ALL-CAPS header line if present
+  // (e.g. "MOJE MOCNE STRONY" or "DLACZEGO PASUJĘ?" that slips in as first line)
+  const HEADER_RE = /^[\s]*[A-ZĄĆĘŁŃÓŚŹŻ\s\u2014\-:?!]{3,}[\s]*$/;
+  const getML = n => {
+    const raw2 = (sections[n] || '').trim();
+    if (!raw2) return '';
+    const ls = raw2.split('\n');
+    // Remove leading lines that are pure ALL-CAPS headers
+    let start = 0;
+    while (start < ls.length && HEADER_RE.test(ls[start]) && ls[start].trim() === ls[start].trim().toUpperCase() && /[A-ZĄĆĘŁŃÓŚŹŻ]/.test(ls[start])) {
+      start++;
+    }
+    return ls.slice(start).join('\n').trim();
+  };
+
+  const salaryStatusRaw = get(8).toLowerCase();
+  const statusRaw = get(11);
+  const validStatuses = ['Nowa','Brak odpowiedzi > 2 tyg.','Kontakt','Rozmowa','Oferta','Odrzucona'];
+  // Map English status words (as used in the import template) back to internal codes
+  const statusWordMap = {
+    'new':            'Nowa',
+    'no response':    'Brak odpowiedzi > 2 tyg.',
+    'contacted':       'Kontakt',
+    'interview':       'Rozmowa',
+    'offer':           'Oferta',
+    'rejected':        'Odrzucona',
+  };
+  const statusRawLower = statusRaw.toLowerCase();
+  let resolvedStatus = 'Nowa';
+  if (validStatuses.includes(statusRaw)) {
+    resolvedStatus = statusRaw;
+  } else {
+    for (const [word, code] of Object.entries(statusWordMap)) {
+      if (statusRawLower.includes(word)) { resolvedStatus = code; break; }
+    }
+  }
+
+  // NEW numbering (sections 6-19 shifted):
+  // 6 = GROSS SALARY, 7 = NET SALARY, 8 = SALARY STATUS
+  // 9 = WORK MODE, 10 = CONTRACT TYPE, 11 = APPLICATION STATUS
+  // 12 = TAGS, 13-19 = prep fields
+  // BACKWARD COMPAT: also try old section 19 for salaryNet if new 7 is empty
+  const salaryGrossVal = get(6);
+  const salaryNetVal   = get(7) || get(19); // try new pos first, fall back to old pos
+  return {
+    company:      get(1),
+    role:         get(2),
+    link:         get(3),
+    companyDesc:  getML(4),
+    roleDesc:     getML(5),
+    salary:       salaryGrossVal, // backward compat
+    salaryGross:  salaryGrossVal,
+    salaryNet:    salaryNetVal,
+    salaryStatus: (salaryStatusRaw.includes('szac') || salaryStatusRaw.includes('estimat')) ? 'szacowane' : 'pewne',
+    workMode:     get(9),
+    contract:     get(10),
+    status:       resolvedStatus,
+    tags:         get(12),
+    strengths:    getML(13),
+    gaps:         getML(14),
+    glossary:     getML(15),
+    whyme:        getML(16),
+    phrases:      getML(17),
+    questions:    getML(18),
+    notes:        getML(19),
+    dateApplied:  '',
+  };
+}
+
+// Parse ENG block that appears after numbered PL sections
+// Format: line "ENG" followed by LABEL: content or • bullets
+function parseEngBlock(text) {
+  // Find ENG marker
+  const lines = text.split('\n');
+  let engStart = -1;
+  for (let i = 0; i < lines.length; i++) {
+    if (/^\s*ENG\s*$/i.test(lines[i])) { engStart = i + 1; break; }
+  }
+  if (engStart < 0) return {};
+
+  const engLines = lines.slice(engStart);
+  const result = {};
+  let currentKey = null;
+  let currentBuf = [];
+
+  const flushEng = () => {
+    if (currentKey) result[currentKey] = currentBuf.join('\n').trim();
+  };
+
+  // Map english label → field key
+  const labelMap = {
+    'STRENGTHS': 'strengthsEn',
+    'AREAS TO IMPROVE': 'gapsEn',
+    'VOCABULARY': 'glossaryEn',
+    'WHY I FIT': 'whymeEn',
+    'INTERVIEW PHRASES': 'phrasesEn',
+    'QUESTIONS FOR RECRUITER': 'questionsEn',
+  };
+
+  for (const line of engLines) {
+    const trimmed = line.trim();
+    // Check if line is a known label (with optional colon)
+    let matched = false;
+    for (const [label, key] of Object.entries(labelMap)) {
+      if (trimmed.toUpperCase().startsWith(label)) {
+        flushEng();
+        currentKey = key;
+        // Content after "LABEL:" on same line
+        const after = trimmed.slice(label.length).replace(/^[:\s]+/, '').trim();
+        currentBuf = after ? [after] : [];
+        matched = true;
+        break;
+      }
+    }
+    if (!matched && currentKey) {
+      currentBuf.push(line);
+    }
+  }
+  flushEng();
+  return result;
+}
+
+importParseBtn.addEventListener('click', () => {
+  const raw = document.getElementById('importText').value.trim();
+  if (!raw) { toast('Paste the data you want to import.', 'error'); return; }
+  const data = parseImport(raw);
+  const engData = parseEngBlock(raw);
+  Object.assign(data, engData);
+  if (!data.company && !data.role) { toast('Could not recognize the sections. Please check the format.', 'error'); return; }
+  fillForm(data);
+  switchMode('manual');
+  toast('Data imported — review and save ✓', 'success');
+});
+
+// ============================================================
+//  CONFIRM DIALOG
+// ============================================================
+function openConfirm(title, msg, cb) {
+  document.getElementById('confirmTitle').textContent = title;
+  document.getElementById('confirmMsg').innerHTML     = msg;
+  confirmCallback = cb;
+  document.getElementById('confirmOverlay').classList.add('open');
+}
+document.getElementById('confirmNo').addEventListener('click', () => {
+  document.getElementById('confirmOverlay').classList.remove('open');
+  confirmCallback = null;
+});
+document.getElementById('confirmYes').addEventListener('click', () => {
+  document.getElementById('confirmOverlay').classList.remove('open');
+  if (confirmCallback) { confirmCallback(); confirmCallback = null; }
+});
+
+// ============================================================
+//  PDF GENERATION
+// ============================================================
+
+// Strip markdown ** markers and bullet chars for plain text in PDF
+// Also transliterate Polish diacritics — jsPDF built-in helvetica
+// does NOT support characters outside Latin-1 (ą,ę,ł etc. render as garbage).
+// We map them to closest ASCII equivalents for PDF output only.
+// Original data in localStorage is never touched.
+function plToAscii(str) {
+  if (!str) return '';
+  return String(str)
+    .replace(/ą/g,'a').replace(/Ą/g,'A')
+    .replace(/ć/g,'c').replace(/Ć/g,'C')
+    .replace(/ę/g,'e').replace(/Ę/g,'E')
+    .replace(/ł/g,'l').replace(/Ł/g,'L')
+    .replace(/ń/g,'n').replace(/Ń/g,'N')
+    .replace(/ó/g,'o').replace(/Ó/g,'O')
+    .replace(/ś/g,'s').replace(/Ś/g,'S')
+    .replace(/ź/g,'z').replace(/Ź/g,'Z')
+    .replace(/ż/g,'z').replace(/Ż/g,'Z')
+    // common ligatures / typographic chars that break latin-1
+    .replace(/\u2014/g,' - ')   // em dash
+    .replace(/\u2013/g,' - ')   // en dash
+    .replace(/\u201C|\u201D/g,'"')
+    .replace(/\u2018|\u2019/g,"'")
+    .replace(/\u2026/g,'...')
+    // bullet variants
+    .replace(/\u2022/g,'*')
+    .replace(/•/g,'*');
+}
+
+function stripMarkdown(raw) {
+  if (!raw) return '';
+  return plToAscii(
+    String(raw)
+      .replace(/\*\*(.+?)\*\*/g, '$1')   // **bold** → plain
+      .trim()
+  );
+}
+
+// Pastel palette for PDF (RGB 0-255)
+const PDF_COLORS = {
+  sky:      [176, 212, 232],
+  lavender: [196, 181, 217],
+  sage:     [168, 197, 160],
+  rose:     [232, 196, 196],
+  butter:   [240, 230, 160],
+  mint:     [168, 216, 200],
+  peach:    [245, 207, 168],
+  ink:      [45,  42,  53],
+  inkSoft:  [74,  69,  88],
+  inkMuted: [122, 117, 144],
+  white:    [255, 255, 255],
+  cream:    [253, 250, 245],
+  border:   [237, 233, 245],
+};
+
+function generateAppPDF(appsToExport) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF({ unit: 'mm', format: 'a4', orientation: 'portrait' });
+  const PW = 210; // page width mm
+  const PH = 297; // page height mm
+  const ML = 14;  // margin left
+  const MR = 14;  // margin right
+  const CW = PW - ML - MR; // content width
+  let y = 0;
+
+  function checkPage(needed = 10) {
+    if (y + needed > PH - 16) { doc.addPage(); y = 16; }
+  }
+
+  function setColor(rgb) { doc.setTextColor(rgb[0], rgb[1], rgb[2]); }
+  function setFill(rgb)  { doc.setFillColor(rgb[0], rgb[1], rgb[2]); }
+  function setDraw(rgb)  { doc.setDrawColor(rgb[0], rgb[1], rgb[2]); }
+
+  // Section header bar
+  function sectionHeader(text, bgColor) {
+    checkPage(12);
+    setFill(bgColor);
+    doc.roundedRect(ML, y, CW, 7, 2, 2, 'F');
+    setColor(PDF_COLORS.ink);
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(8.5);
+    doc.text(plToAscii(text).toUpperCase(), ML + 3, y + 4.8);
+    y += 10;
+  }
+
+  // Label + value row
+  function fieldRow(label, value, color) {
+    if (!value) return;
+    const val = stripMarkdown(value);
+    checkPage(8);
+    // Label chip
+    setFill(color);
+    doc.roundedRect(ML, y, 38, 5.5, 1.5, 1.5, 'F');
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7);
+    setColor(PDF_COLORS.inkSoft);
+    doc.text(plToAscii(label), ML + 2, y + 3.8);
+    // Value text — set font BEFORE splitTextToSize
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    setColor(PDF_COLORS.ink);
+    const lines = doc.splitTextToSize(val, CW - 44);
+    doc.text(lines, ML + 41, y + 3.8);
+    y += Math.max(7, lines.length * 4.5);
+  }
+
+  // Multi-line text block (for long fields)
+  function textBlock(label, value, bgColor) {
+    if (!value) return;
+    const val = stripMarkdown(value);
+    checkPage(14);
+    // Label
+    if (label) {
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7.5);
+      setColor(PDF_COLORS.inkMuted);
+      doc.text(plToAscii(label), ML, y + 3);
+      y += 5;
+    }
+    // Set font BEFORE splitTextToSize so jsPDF uses correct glyph widths
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(8.5);
+    const lines = doc.splitTextToSize(val, CW - 6);
+    const boxH = lines.length * 4.5 + 5;
+    checkPage(boxH);
+    setFill(bgColor);
+    doc.roundedRect(ML, y, CW, boxH, 2, 2, 'F');
+    setColor(PDF_COLORS.ink);
+    doc.text(lines, ML + 3, y + 4.5);
+    y += boxH + 4;
+  }
+
+  // Divider line
+  function divider() {
+    checkPage(4);
+    setDraw(PDF_COLORS.border);
+    doc.setLineWidth(0.3);
+    doc.line(ML, y, ML + CW, y);
+    y += 4;
+  }
+
+  appsToExport.forEach((app, idx) => {
+    if (idx > 0) { doc.addPage(); y = 0; }
+
+    // ── PAGE HEADER ──────────────────────────────────────────
+    y = 12;
+    // Accent bar
+    const accentMap = {
+      'Nowa':                    PDF_COLORS.sage,
+      'Brak odpowiedzi > 2 tyg.':PDF_COLORS.rose,
+      'Kontakt':                 PDF_COLORS.sky,
+      'Rozmowa':                 PDF_COLORS.lavender,
+      'Oferta':                  PDF_COLORS.butter,
+      'Odrzucona':               [212, 207, 200],
+    };
+    const accent = accentMap[app.status] || PDF_COLORS.border;
+
+    setFill(accent);
+    doc.rect(0, 0, 5, PH, 'F');
+
+    // Company + role
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(16);
+    setColor(PDF_COLORS.ink);
+    doc.text(stripMarkdown(app.company) || '—', ML, y);
+    y += 7;
+
+    doc.setFont('helvetica', 'normal');
+    doc.setFontSize(11);
+    setColor(PDF_COLORS.inkSoft);
+    doc.text(stripMarkdown(app.role) || '—', ML, y);
+    y += 6;
+
+    // Status badge inline
+    doc.setFont('helvetica', 'bold');
+    doc.setFontSize(7.5);
+    setFill(accent);
+    const statusText = plToAscii(statusLabel(app.status) || '');
+    const sw = doc.getTextWidth(statusText) + 6;
+    doc.roundedRect(ML, y, sw, 5.5, 1.5, 1.5, 'F');
+    setColor(PDF_COLORS.ink);
+    doc.text(statusText, ML + 3, y + 3.8);
+    y += 9;
+
+    divider();
+
+    // ── BASIC INFO GRID ──────────────────────────────────────
+    sectionHeader('Basic Information', PDF_COLORS.sky);
+    fieldRow('Gross Salary',  app.salaryGross || app.salary, PDF_COLORS.sage);
+    fieldRow('Net Salary',    app.salaryNet,                 PDF_COLORS.mint);
+    fieldRow('Salary Status', app.salaryStatus === 'szacowane' ? 'Estimated' : (app.salaryGross || app.salary ? 'Confirmed' : ''), PDF_COLORS.butter);
+    fieldRow('Work Mode',     app.workMode,                  PDF_COLORS.sky);
+    fieldRow('Contract Type', app.contract,                  PDF_COLORS.lavender);
+    fieldRow('Application Date', app.dateApplied,            PDF_COLORS.peach);
+    if (app.link) {
+      checkPage(8);
+      setFill(PDF_COLORS.lavender);
+      doc.roundedRect(ML, y, 38, 5.5, 1.5, 1.5, 'F');
+      doc.setFont('helvetica', 'bold');
+      doc.setFontSize(7);
+      setColor(PDF_COLORS.inkSoft);
+      doc.text('LINK', ML + 2, y + 3.8);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(8);
+      setColor([91, 127, 166]);
+      const linkText = doc.splitTextToSize(app.link, CW - 44);
+      doc.textWithLink(linkText[0], ML + 41, y + 3.8, { url: app.link });
+      y += 7;
+    }
+    y += 2;
+
+    // ── DESCRIPTIONS ─────────────────────────────────────────
+    if (app.companyDesc) {
+      sectionHeader('Company Description', PDF_COLORS.sky);
+      textBlock('', app.companyDesc, [220, 238, 248]);
+    }
+    if (app.roleDesc) {
+      sectionHeader('Role Description', PDF_COLORS.lavender);
+      textBlock('', app.roleDesc, [235, 230, 248]);
+    }
+
+    // ── PREPARATION ──────────────────────────────────────────
+    if (app.strengths) {
+      sectionHeader('Strengths', PDF_COLORS.sage);
+      textBlock('', app.strengths, [237, 245, 235]);
+    }
+    if (app.gaps) {
+      sectionHeader('Areas to Improve', PDF_COLORS.rose);
+      textBlock('', app.gaps, [253, 242, 242]);
+    }
+    if (app.glossary) {
+      sectionHeader('Vocabulary', PDF_COLORS.sky);
+      textBlock('', app.glossary, [220, 238, 248]);
+    }
+    if (app.whyme) {
+      sectionHeader('Why I Fit', PDF_COLORS.butter);
+      textBlock('', app.whyme, [253, 250, 237]);
+    }
+    if (app.phrases) {
+      sectionHeader('Interview Phrases', PDF_COLORS.lavender);
+      textBlock('', app.phrases, [243, 240, 250]);
+    }
+    if (app.questions) {
+      sectionHeader('Questions for the Recruiter', PDF_COLORS.peach);
+      textBlock('', app.questions, [254, 246, 238]);
+    }
+    if (app.notes) {
+      sectionHeader('Recruitment Notes', PDF_COLORS.mint);
+      textBlock('', app.notes, [237, 248, 244]);
+    }
+
+    // ── ALTERNATE VIEW SECTION ────────────────────────────────
+    const hasEng = app.strengthsEn || app.gapsEn || app.glossaryEn || app.whymeEn || app.phrasesEn || app.questionsEn;
+    if (hasEng) {
+      checkPage(14);
+      divider();
+      sectionHeader('CONCISE VERSION', PDF_COLORS.sky);
+      if (app.strengthsEn) textBlock('Strengths',              app.strengthsEn,  [237, 245, 235]);
+      if (app.gapsEn)      textBlock('Areas to improve',       app.gapsEn,       [253, 242, 242]);
+      if (app.glossaryEn)  textBlock('Vocabulary',             app.glossaryEn,   [220, 238, 248]);
+      if (app.whymeEn)     textBlock('Why I fit?',             app.whymeEn,      [253, 250, 237]);
+      if (app.phrasesEn)   textBlock('Interview phrases',      app.phrasesEn,    [243, 240, 250]);
+      if (app.questionsEn) textBlock('Questions for recruiter',app.questionsEn,  [254, 246, 238]);
+    }
+
+    // ── PAGE FOOTER ──────────────────────────────────────────
+    const totalPages = doc.internal.getNumberOfPages();
+    for (let p = 1; p <= totalPages; p++) {
+      doc.setPage(p);
+      doc.setFont('helvetica', 'normal');
+      doc.setFontSize(7);
+      setColor(PDF_COLORS.inkMuted);
+      doc.text('AI Job Application Tracker — Portfolio Edition', ML, PH - 6);
+      doc.text(`${p} / ${totalPages}`, PW - MR - 8, PH - 6);
+    }
+  });
+
+  return doc;
+}
+
+// ============================================================
+//  BACKUP — EXPORT / IMPORT
+// ============================================================
+document.getElementById('exportBtn').addEventListener('click', () => {
+  if (!apps.length) { toast('No applications to export.', 'error'); return; }
+  toast('Generating PDF…');
+  setTimeout(() => {
+    try {
+      const doc = generateAppPDF(apps);
+      doc.save(`job-tracker-${new Date().toISOString().slice(0,10)}.pdf`);
+      toast('PDF exported ✓', 'success');
+    } catch (e) {
+      console.error(e);
+      toast('Error generating PDF.', 'error');
+    }
+  }, 50);
+});
+
+// JSON backup (separate button)
+document.getElementById('exportJsonBtn').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(apps, null, 2)], { type: 'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `job-tracker-backup-${new Date().toISOString().slice(0,10)}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  toast('JSON backup exported ✓', 'success');
+});
+
+document.getElementById('importFileBtn').addEventListener('click', () => {
+  document.getElementById('importFileInput').click();
+});
+
+document.getElementById('importFileInput').addEventListener('change', e => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const parsed = JSON.parse(ev.target.result);
+      if (!Array.isArray(parsed)) throw new Error('Invalid format');
+      openConfirm(
+        'Import Data',
+        `<strong>${parsed.length}</strong> application(s) will be merged in. Existing data will not be overwritten.`,
+        () => {
+          const existingIds = new Set(apps.map(a => a.id));
+          parsed.forEach(a => { if (!existingIds.has(a.id)) apps.push(a); });
+          save(); render();
+          toast(`Imported ${parsed.length} entries ✓`, 'success');
+        }
+      );
+    } catch { toast('Import error — invalid JSON file.', 'error'); }
+    e.target.value = '';
+  };
+  reader.readAsText(file);
+});
+
+// ============================================================
+//  SEARCH
+// ============================================================
+let searchTimeout;
+document.getElementById('searchInput').addEventListener('input', e => {
+  clearTimeout(searchTimeout);
+  searchTimeout = setTimeout(() => { searchQuery = e.target.value; render(); }, 80);
+});
+
+// Ctrl+K
+window.addEventListener('keydown', e => {
+  if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
+    e.preventDefault();
+    document.getElementById('searchInput').focus();
+    document.getElementById('searchInput').select();
+  }
+  if (e.key === 'Escape') closeModal();
+});
+
+// ============================================================
+//  FILTER CHIPS
+// ============================================================
+document.querySelectorAll('.filter-chip').forEach(chip => {
+  chip.addEventListener('click', () => {
+    document.querySelectorAll('.filter-chip').forEach(c => c.classList.remove('active'));
+    chip.classList.add('active');
+    filterStatus = chip.dataset.status;
+    render();
+  });
+});
+
+// ============================================================
+//  SORT
+// ============================================================
+document.getElementById('sortSelect').addEventListener('change', e => {
+  sortMode = e.target.value; render();
+});
+
+// ============================================================
+//  FAB + MODAL BUTTONS
+// ============================================================
+document.getElementById('fabBtn').addEventListener('click', openAddModal);
+document.getElementById('modalClose').addEventListener('click', closeModal);
+document.getElementById('modalCancelBtn').addEventListener('click', closeModal);
+document.getElementById('modalSaveBtn').addEventListener('click', saveApp);
+addModal.addEventListener('click', e => { if (e.target === addModal) closeModal(); });
+
+// ============================================================
+//  INIT
+// ============================================================
+load();
+render();
+
+// ============================================================
+//  RECRUITMENT ENTRY SCREEN LOGIC
+// ============================================================
+// Show the welcome screen only on a fresh visit (no data saved yet
+// under this demo's isolated storage key). Returning visitors who
+// already explored the workspace go straight to the dashboard.
+const welcomeOverlay = document.getElementById('welcomeOverlay');
+const welcomeSeenKey = 'job_tracker_portfolio_demo_seen_v1';
+
+if (apps.length > 0 || localStorage.getItem(welcomeSeenKey)) {
+  welcomeOverlay.classList.add('hidden');
+}
+
+document.getElementById('welcomeCta').addEventListener('click', () => {
+  // Load built-in fictional demo data directly — no upload, no import needed.
+  if (apps.length === 0) {
+    apps = DEMO_APPS.map(a => ({ ...a }));
+    save();
+  }
+  try { localStorage.setItem(welcomeSeenKey, '1'); } catch (e) {}
+  welcomeOverlay.classList.add('hidden');
+  render();
+});
+</script>
+</body>
+</html>
