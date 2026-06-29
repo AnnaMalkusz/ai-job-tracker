@@ -28,8 +28,9 @@
 
 # 📄 Documentation
 
-- 📗 [Quick Start Guide](https://github.com/annamalkusz/NAZWA-REPOZYTORIUM/raw/main/Quick-start-guide.pdf)
-- 📘 [Behind the Project](https://github.com/annamalkusz/NAZWA-REPOZYTORIUM/raw/main/Behind-the-project.pdf)
+📗 [Quick Start Guide](https://annamalkusz.github.io/ai-job-tracker/Quick-start-guide.pdf)
+
+📘 [Behind the Project](https://annamalkusz.github.io/ai-job-tracker/Behind-the-project.pdf)
 
 ---
 
