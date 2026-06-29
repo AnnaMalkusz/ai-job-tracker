@@ -8,7 +8,7 @@
 
 # 🚀 Live Demo
 
-👉 **Explore Demo Application**
+👉 [Explore Demo Application][https://annamalkusz.github.io/ai-job-tracker/
 
 ---
 
@@ -28,14 +28,14 @@
 
 # 📄 Documentation
 
-- 📗 **Quick Start Guide**
-- 📘 **Behind the Project**
+- 📗 [Quick Start Guide](Quick-start-guide.pdf)
+- 📘 [Behind the Project](Behind-the-project.pdf)
 
 ---
 
 # © Copyright
 
-© 2026 Anna Malkusz. All rights reserved.
+© 2026 Anna Małkusz. All rights reserved.
 
 This repository is shared exclusively for portfolio and recruitment purposes.
 
