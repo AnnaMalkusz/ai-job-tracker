@@ -8,7 +8,7 @@
 
 # 🚀 Live Demo
 
-👉 [Explore Demo Application] [https://annamalkusz.github.io/ai-job-tracker/
+👉 **[Explore Demo Application](https://annamalkusz.github.io/ai-job-tracker/)**
 
 ---
 
